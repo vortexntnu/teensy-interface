@@ -1,0 +1,62 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558 
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "windows": {
+        "command": "nmake",
+        "options": {
+            "env": {
+                "Path": "${env:Path};${env:VCINSTALLDIR}Tools/Llvm/bin"
+            }
+        }
+    },
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Build Debug Executable",
+            "windows": {
+                "args": [
+                    "\"DEBUG_BUILD=true\"",
+                    "clean",
+                    "debug.exe"
+                ]
+            },
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Build Release Executable",
+            "windows": {
+                "args": [
+                    "clean",
+                    "release.exe"
+                ]
+            },
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        }
+    ]
+}
