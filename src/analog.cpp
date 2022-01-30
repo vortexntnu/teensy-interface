@@ -20,7 +20,9 @@
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
-IPAddress ip(192, 168, 1, 177);
+IPAddress ip(2, 0, 1, 1);
+IPAddress gateway(2, 0, 0, 1);
+IPAddress subnet(255, 0, 0, 0);
 
 unsigned int localPort = 8888;      // local port to listen on
 
@@ -66,6 +68,8 @@ void setup() {
 
 void loop() {
   // if there's data available, read a packet
+  digitalWrite(LED_BUILTIN, HIGH);
+
   int packetSize = Udp.parsePacket();
   if (packetSize) {
     Serial.print("Received packet of size ");
@@ -91,7 +95,8 @@ void loop() {
     Udp.write(ReplyBuffer);
     Udp.endPacket();
   }
-  delay(10);
+  delay(1000);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 
