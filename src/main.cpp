@@ -37,10 +37,11 @@ void setup() {
 
 void loop() {
 
-  Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+  IPAddress remote = Udp.remoteIP(); 
+  Udp.beginPacket(remote, Udp.remotePort());
 
-    size_t size = Udp.write(ReplyBuffer);
-    Serial.print(size); 
+    Udp.write(ReplyBuffer);
+    Serial.print(remote); 
 
     int status = Udp.endPacket();
     
