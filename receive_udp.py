@@ -1,10 +1,10 @@
 import socket
 import os
 
-UDP_IP = "192.168.1.1"
+UDP_IP = "129.241.187.19"
 UDP_PORT = 8888
 
-REMOTE_IP = "192.168.1.177"
+REMOTE_IP = "129.241.187.177"
 
 LOCALHOST_IP = "127.0.0.1"
 
