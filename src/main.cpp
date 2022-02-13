@@ -11,6 +11,7 @@
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 IPAddress ip(192, 168, 1, 177);
+IPAddress pc(192, 168, 1, 1);
 
 unsigned int localPort = 8888;      // local port to listen on
 
@@ -37,11 +38,11 @@ void setup() {
 
 void loop() {
 
-  IPAddress remote = Udp.remoteIP(); 
-  Udp.beginPacket(remote, Udp.remotePort());
+  //IPAddress remote = pc; 
+  Udp.beginPacket(pc, localPort);
 
     Udp.write(ReplyBuffer);
-    Serial.print(remote); 
+    Serial.print(pc); 
 
     int status = Udp.endPacket();
     
