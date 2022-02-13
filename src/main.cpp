@@ -23,6 +23,7 @@ EthernetUDP Udp;
 void setup() {
 
   // start the Ethernet and UDP:
+  Serial.begin(9600); 
 
   Ethernet.begin(mac,ip);
 
@@ -38,7 +39,8 @@ void loop() {
 
   Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
 
-    Udp.write(ReplyBuffer);
+    size_t size = Udp.write(ReplyBuffer);
+    Serial.print(size); 
 
     int status = Udp.endPacket();
     
@@ -48,6 +50,5 @@ void loop() {
     else {
       digitalToggle(LED_BUILTIN);
     }
-
-    delay(100);
+    delay(1000);
 }
