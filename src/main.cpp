@@ -11,7 +11,8 @@
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 IPAddress ip(192, 168, 1, 177);
-IPAddress pc(192, 168, 1, 1);
+IPAddress remote(192, 168, 1, 1);
+IPAddress pc_localhost(127, 0, 0, 1);
 
 unsigned int localPort = 8888;      // local port to listen on
 
@@ -39,18 +40,17 @@ void setup() {
 void loop() {
 
   //IPAddress remote = pc; 
-  Udp.beginPacket(pc, localPort);
+  Udp.beginPacket(remote, localPort);
 
-    Udp.write(ReplyBuffer);
-    Serial.print(pc); 
+  Udp.write(ReplyBuffer);
 
-    int status = Udp.endPacket();
+  int status = Udp.endPacket();
     
-    if (status == 1) {
-      digitalWrite(LED_BUILTIN, HIGH);
-    }
-    else {
-      digitalToggle(LED_BUILTIN);
-    }
-    delay(1000);
+  if (status == 1) {
+    digitalWrite(LED_BUILTIN, HIGH);
+  }
+  else {
+    digitalToggle(LED_BUILTIN);
+  }
+  delay(1000);
 }
