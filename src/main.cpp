@@ -2,23 +2,20 @@
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
 
+constexpr int SUCCESSFUL = 1;
+constexpr int FAILIURE = 0;
 
+byte macAddressTeensy[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+IPAddress ipAddressTeensy(10, 0, 0, 1);
+IPAddress switchAddress(129, 241, 187, 1);
+IPAddress targetAddress(10, 0, 0, 2);
 
-// Enter a MAC address and IP address for your controller below.
+unsigned int localPort = 8888;
+unsigned int targetPort = 8888;
 
-// The IP address will be dependent on your local network:
-
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-
-IPAddress teensy_ip(129, 241, 187, 177);
-//IPAddress remote(192, 168, 1, 1);
-IPAddress remote_switch(129,241,187,1);
-//IPAddress pc_localhost(127, 0, 0, 1);
-IPAddress target(129,241,187,19);
-
-unsigned int localPort = 8888;      // local port to listen on
-
-char ReplyBuffer[] = "messageSent";
+char stringSent[] = "No packets recieved, 5 second cooldown set";
+char recieveConfirmed[] = "PacketRecieved";
+char recievedString[UDP_TX_PACKET_MAX_SIZE];
 
 // An EthernetUDP instance to let us send and receive packets over UDP
 
@@ -28,10 +25,11 @@ void setup() {
 
   // start the Ethernet and UDP:
   Serial.begin(9600); 
-
-  Ethernet.begin(mac,teensy_ip);
-
+  Ethernet.begin(macAddressTeensy,ipAddressTeensy);
   Udp.begin(localPort);
+
+  
+  Serial.println("Ethernet and UDP is set up!");
 
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -41,15 +39,39 @@ void setup() {
 
 void loop() {
 
-  //IPAddress remote = pc; 
-  Udp.beginPacket(target, localPort);
+  int packetSize = Udp.parsePacket();
+  int status;
+  if (packetSize != 0) {                           //if part to confirm recieved UDP package
+    Serial.print("Received packet of size ");      //by serial printing address recieved from
+    Serial.println(packetSize);
+    Serial.print("From ");
+    IPAddress remote = Udp.remoteIP();
+    for (int i=0; i < 4; i++) {
+      Serial.print(remote[i], DEC);
+      if (i < 3) {
+        Serial.print(".");
+      }
+    }
+    Serial.println("\n");
 
-  Udp.write(ReplyBuffer);
+    Udp.read(recievedString, UDP_TX_PACKET_MAX_SIZE);
+    Serial.println("Contents:");
+    Serial.println(recievedString);
 
-  int status = Udp.endPacket();
-
-    
-  if (status == 1) {
+    Udp.beginPacket(targetAddress,targetPort);
+    Udp.write("Recieved UDP packet containing: ");
+    Udp.write(recievedString);
+    status = Udp.endPacket();
+    delay(1000);
+  }
+  else {
+    Udp.beginPacket(targetAddress, targetPort);
+    Udp.write(stringSent);
+    status = Udp.endPacket();
+    delay(5000);                                  //5sec delay to not overload the recieving end terminal
+  }
+  
+  if (status == SUCCESSFUL) {
     digitalWrite(LED_BUILTIN, HIGH);
   }
   else {

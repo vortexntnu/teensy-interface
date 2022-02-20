@@ -1,8 +1,8 @@
 import socket
 
-TEENSY_IP = "129.241.187.177"
+TEENSY_IP = "10.0.0.1"
 UDP_PORT = 8888
-MESSAGE = b"1"
+MESSAGE = b"Testing UDP package"
 
 print("UDP target IP: %s" % TEENSY_IP)
 print("UDP target port: %s" % UDP_PORT)
