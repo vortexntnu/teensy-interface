@@ -3,10 +3,10 @@
 #include <Arduino.h>
 
 int main() {
-  serialAndLEDSetup();
-  ethernetSetup();
+  eth::ethernetSetup();
 
   while(1) {
-    ethernetCheck();
+    eth::ethernetCheck();
+    delay(1000);
   }
 }
