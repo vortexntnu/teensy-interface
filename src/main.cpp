@@ -1,11 +1,11 @@
 #include <ethernetModule.h>
 #include <Arduino.h>
 
-void setup() {
+int main() {
   serialAndLEDSetup();
   ethernetSetup();
-}
-
-void loop() {
-  ethernetCheck();
+  
+  while(1) {
+    ethernetCheck();
+  }
 }
