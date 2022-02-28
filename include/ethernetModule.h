@@ -3,14 +3,19 @@
 #include <SPI.h>
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
+#include <string.h>
 
 namespace eth {
 
     enum status {
-        success, failure
+        SUCCESS, FAILURE
     };
 
-    status ethernetSetup();
+    status setup();
 
-    status ethernetCheck();
+    //status check();
+
+    status write(char* message);
+
+    char* read();
 };

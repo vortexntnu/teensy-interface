@@ -2,11 +2,15 @@
 #include <headerConfig.h>
 #include <Arduino.h>
 
+char defaultMessage[] = "Default Message"; 
+// This can be any wanted character array / string
+
 int main() {
-  eth::ethernetSetup();
+  eth::setup();
 
   while(1) {
-    eth::ethernetCheck();
+    eth::read();
+    eth::write(defaultMessage);
     delay(1000);
   }
 }
