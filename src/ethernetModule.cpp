@@ -11,7 +11,6 @@ IPAddress targetAddress(10, 0, 0, 2);
 unsigned int localPort = 8888;
 unsigned int targetPort = 8888;
 
-char emptyString[] = "";
 char recievedString[UDP_TX_PACKET_MAX_SIZE];
 
 namespace eth {
@@ -44,7 +43,7 @@ namespace eth {
             return recievedString;
         }
         else {
-            return emptyString;
+            return nullptr;
         }
     }
 };

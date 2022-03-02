@@ -1,5 +1,4 @@
 #include <ethernetModule.h>
-#include <headerConfig.h>
 #include <Arduino.h>
 
 char defaultMessage[] = "Default Message"; 
