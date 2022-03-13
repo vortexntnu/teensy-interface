@@ -1,9 +1,11 @@
 #include "gpio.h"
+#include "Arduino.h"
 
 void gpio_setup()
 {
     IMXRT_GPIO6.GDIR = 0x0;
 }
+
 
 inline void read_pin(int pin, uint16_t* data)
 {
