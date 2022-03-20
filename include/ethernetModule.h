@@ -15,6 +15,7 @@ namespace eth {
     //status check();
 
     status write(char* message);
+    status write(uint16_t data);
 
     char* read();
 };

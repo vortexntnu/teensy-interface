@@ -37,6 +37,19 @@ namespace eth {
         }   
     }
     
+    status write(uint16_t data) {
+        int udpStatus1 = Udp.beginPacket(targetAddress, targetPort);
+        uint8_t* packetStart = reinterpret_cast<uint8_t*>(&data); 
+        Udp.write(packetStart, sizeof(uint16_t));
+        int udpStatus2 = Udp.endPacket();
+        if (udpStatus1 && udpStatus2) {
+            return SUCCESS;
+        }
+        else {
+            return FAILURE;
+        }   
+    }
+
     char* read() {
         if (Udp.parsePacket() != 0) {                           //if part to confirm recieved UDP package
             Udp.read(recievedString, UDP_TX_PACKET_MAX_SIZE);
