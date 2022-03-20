@@ -1,50 +1,42 @@
 #include "gpioInterrupt.h"
 #include "stdlib.h"
 
+volatile uint32_t triggeredPin;
+uint32_t inputPinsMask = 0xC40000; //Activate GPIO8 pin 18, 22, 23
+uint32_t ICR2activeHighMask = 0xA020;
+uint32_t ICR2clearMask = ~(0xF030);
+
 void ISR(void) {
 
-    NVIC_DISABLE_IRQ(IRQ_GPIO3_16_31);
+    NVIC_DISABLE_IRQ(IRQ_GPIO6789);
 
-    if (1 << 18 & GPIO8_ISR) {
-        (GPIO8_ISR &= ~(1 << 18));
+    if ((0x40000) & GPIO8_ISR) {
+        GPIO8_ISR &= 0x40000;
         Serial.print("Pin 28 detected a signal!\n");
     }
-    if (1 << 22 & GPIO8_ISR) {
-        GPIO8_ISR &= ~(1 << 22);
+    if ((0x400000) & GPIO8_ISR) {
+        GPIO8_ISR &= 0x400000;
         Serial.print("Pin 31 detected a signal!\n");
     }
-    if (1 << 23 & GPIO8_ISR) {
-        GPIO8_ISR &= ~(1 << 23);
+    if ((0x800000) & GPIO8_ISR) {
+        GPIO8_ISR &= 0x800000;
         Serial.print("Pin 30 detected a signal!\n");
     }
 
-    NVIC_ENABLE_IRQ(IRQ_GPIO3_16_31);
+    NVIC_ENABLE_IRQ(IRQ_GPIO6789);
 }
 
 void setupGPIOInterrupt() {
 
-    Serial.begin(9600);
+    GPIO8_GDIR &= ~inputPinsMask; //Use inputPinsMask to mark input pins
 
-    uint32_t inputPinsMask = 1 << 18 | 1 << 22 | 1 << 23;
+    GPIO8_IMR = inputPinsMask; //Use inputPinsMask to active interrups on chosen pins
 
-    Serial.println(inputPinsMask, HEX);
-    Serial.println(GPIO8_DR, HEX);
+    GPIO8_ICR2 &= ICR2clearMask; //Use ICR2clearMask to clear out currently existing values in chosen pins
+    GPIO8_ICR2 |= ICR2activeHighMask; // Use ICR2activeHighMask to mark pins as rising edge interrupt trigger
 
-    GPIO8_DR &= ~inputPinsMask; //Writes in zeros in given pins to mark as input
-    GPIO8_DR = 0xB00B5;
+    GPIO8_DR_CLEAR = 0xFFFFFFFF; //Clear current content in data register
 
-    Serial.println(GPIO8_DR, HEX);
-    GPIO8_IMR |= inputPinsMask; //Writes in ones in given pins to active their interrupt
-    Serial.println(0xB00B5, HEX);
-
-    //ICR has 4 different configs, using 2 bits per pin, and
-    //therefore has 2 32-bit registers for covering all pins
-
-    uint32_t ICR2activeHighMask = 10 << (18-16) | 10 << (22-16) | 10 << (23-16);
-    uint32_t ICR2clearMask = ~( 11 << (18-16) | 11 << (22-16) | 11 << (23-16));
-
-    GPIO8_ICR2 &= ICR2clearMask;
-    GPIO8_ICR2 |= ICR2activeHighMask;
-
-    attachInterruptVector(IRQ_GPIO3_16_31, ISR);
+    attachInterruptVector(IRQ_GPIO6789, ISR);
+    NVIC_ENABLE_IRQ(IRQ_GPIO6789);
 }
