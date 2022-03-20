@@ -2,7 +2,9 @@
 #include <Arduino.h>
 #include "gpio.h"
 #include "pitInterrupts.h"
-#include <gpioInterrupt.h>
+#include "gpioInterrupt.h"
+#include "adcTestModule.h"
+
 
 char defaultMessage[] = "No package received";
 // This can be any wanted character array / string
@@ -24,15 +26,16 @@ int main() {
     }
     Serial.printf("Serial connected\r\n");
     #endif
-
     gpio_setup(); 
-    setupGPIOInterrupt();
+    //setupGPIOInterrupt();
+    gptSetup();
    
     eth::setup();
 
     timer::setUpPeriodic();
     timer::setUpPeriodicISR(send_on_interrupt);
     timer::startPeriodic();   
+
 
     while (1)
     {
