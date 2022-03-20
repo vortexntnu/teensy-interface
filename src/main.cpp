@@ -1,21 +1,17 @@
 #include <ethernetModule.h>
 #include <Arduino.h>
 #include "gpio.h"
+#include <gpioInterrupt.h>
 
 char defaultMessage[] = "No package received";
-// This can be any wanted character array / string
-
 int main() {
-  eth::setup();
-
+  Serial.begin(9600);
+  while (!Serial) {}
+  setupGPIOInterrupt();
   while(1) {
-    char* rec_message = eth::read();
-    if(rec_message != nullptr) {
-        eth::write(rec_message);
-    }
-    else {
-        eth::write(defaultMessage);
-    }
+
+    Serial.printf("TOUCHED PINS: %X\r\n", GPIO8_DR);
     delay(1000);
+    GPIO8_DR &= ~0xC40000;
   }
 }
