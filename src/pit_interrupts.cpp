@@ -1,4 +1,4 @@
-#include "interrupts.h"
+#include "pit_interrupts.h"
 
 
 namespace timer {

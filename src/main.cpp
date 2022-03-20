@@ -1,7 +1,7 @@
 #include <ethernetModule.h>
 #include <Arduino.h>
 #include "gpio.h"
-#include "interrupts.h"
+#include "pit_interrupts.h"
 
 char defaultMessage[] = "No package received";
 // This can be any wanted character array / string
