@@ -25,20 +25,18 @@ int main() {
     Serial.printf("Serial connected\r\n");
     #endif
 
-  gpio_setup(); 
-  setupGPIOInterrupt();
+    gpio_setup(); 
+    setupGPIOInterrupt();
    
-  eth::setup();
+    eth::setup();
 
-  timer::setUpPeriodic();
-  timer::setUpPeriodicISR(send_on_interrupt);
-  timer::startPeriodic();   
+    timer::setUpPeriodic();
+    timer::setUpPeriodicISR(send_on_interrupt);
+    timer::startPeriodic();   
 
-  while (1)
-  {
-    Serial.printf("TOUCHED PINS: %X\r\n", GPIO8_DR);
-    delay(1000);
-    GPIO8_DR &= ~0xC40000;
-  }
+    while (1)
+    {
+
+    }
  
 }
