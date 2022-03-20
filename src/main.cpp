@@ -4,6 +4,7 @@
 #include "pitInterrupts.h"
 #include "gpioInterrupt.h"
 #include "adcTestModule.h"
+#include "adc.h"
 
 
 char defaultMessage[] = "No package received";
