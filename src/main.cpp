@@ -18,7 +18,19 @@ char defaultMessage[] = "No package received";
     eth::write(data); 
 }  */
 
+int* count;
+
+static void print_on_interrupt(void) {
+    #ifdef SERIAL_DEBUG
+    Serial.printf("%u\n",*count); 
+    #endif
+    *count++;
+    PIT_LDVAL3 *= 2; 
+} 
+
 int main() {
+
+    *count=0;
 
     Serial.begin(9600);
     while (!Serial) {}
@@ -28,9 +40,9 @@ int main() {
     gpt_setup();
     //eth::setup();
 
-    //timer::setUpPeriodic();
-    //timer::setUpPeriodicISR(send_on_interrupt);
-    //timer::startPeriodic();   
+    timer::setUpPeriodic();
+    timer::setUpPeriodicISR(print_on_interrupt);
+    timer::startPeriodic();   
 
 
     while (1)
