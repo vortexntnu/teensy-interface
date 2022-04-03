@@ -9,7 +9,7 @@ typedef void (*void_function_ptr)(void);
 
 void ISR();
 void setUpPeriodicISR(void_function_ptr function);
-void setUpPeriodic();
+void setup();
 void startPeriodic();
 
 } //timer 

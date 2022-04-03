@@ -1,5 +1,3 @@
-#pragma once
-
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
 #include <string.h>

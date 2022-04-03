@@ -1,5 +1,4 @@
 #include "gptInterrupts.h"
-#include <Arduino.h>
 
 // GENERAL PURPOSE TIMER SETUP, READ ON PAGE 2945-2969
 
@@ -34,7 +33,7 @@ namespace gpt {
         waiting = 1;
     }
 
-    void ISR() {
+    void ISR(void) {
         GPT1_CR &= ~GPT_CR_EN; //Turns off timer
         NVIC_DISABLE_IRQ(IRQ_GPT1);
         if (GPT1_SR & GPT_SR_OF1) {

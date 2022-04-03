@@ -14,7 +14,7 @@ void adc::setup() {
     Serial.printf("_RD: %d\n", (((IMXRT_GPIO7.DR) & (0x1<<_RD))>>_RD));
     #endif
 
-    timer::setUpPeriodic();  
+    timer::setup();  
 }
 
 //function currently turns convst signal on and of. 

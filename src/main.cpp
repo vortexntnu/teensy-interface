@@ -5,6 +5,8 @@
 #include "gpioInterrupt.h"
 #include "gptInterrupts.h"
 #include "adc.h"
+#include "clock.h"
+
 
 // This can be any wanted character array / string
 
@@ -22,11 +24,11 @@ int main() {
     while (!Serial) {}
     Serial.printf("Serial connected\r\n");
     //gpio_setup(); 
-    //setupGPIOInterrupt();
+    gpio::setup();
     gpt::setup();
-    //eth::setup();
-
-    timer::setUpPeriodic();
+    eth::setup();
+    clock::setup();
+    timer::setup();
     //timer::setUpPeriodicISR(print_on_interrupt);
     //timer::startPeriodic();
 

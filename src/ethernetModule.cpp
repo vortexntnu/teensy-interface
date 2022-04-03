@@ -1,19 +1,19 @@
-#include <ethernetModule.h>
-
-EthernetUDP Udp;
-
-//GLOBALS
-byte macAddressTeensy[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-IPAddress ipAddressTeensy(10, 0, 0, 1);
-//IPAddress switchAddress(129, 241, 187, 1);
-IPAddress targetAddress(10, 0, 0, 2);
-
-unsigned int localPort = 8888;
-unsigned int targetPort = 8888;
-
-char recievedString[UDP_TX_PACKET_MAX_SIZE];
+#include "ethernetModule.h"
 
 namespace eth {
+
+    EthernetUDP Udp;
+
+    //GLOBALS
+    byte macAddressTeensy[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+    IPAddress ipAddressTeensy(10, 0, 0, 1);
+    //IPAddress switchAddress(129, 241, 187, 1);
+    IPAddress targetAddress(10, 0, 0, 2);
+
+    unsigned int localPort = 8888;
+    unsigned int targetPort = 8888;
+
+    char recievedString[UDP_TX_PACKET_MAX_SIZE];
 
     status setup() { 
         Ethernet.begin(macAddressTeensy,ipAddressTeensy);
