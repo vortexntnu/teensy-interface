@@ -39,12 +39,11 @@ int main() {
 
     //adc::stopConversion(); 
 
-    //adc::startConversion();
-
+    gpt::startTimer(132000000); //Takes in amount of clock cycles it needs before execute
+    Serial.printf("Starting wait...\n");
     while (1)
     {
-
-
+        while(gpt::waiting) {}
         //CODE TO BE EXECUTED AFTER DELAY
     }
  

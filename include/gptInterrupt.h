@@ -1,5 +1,6 @@
 #include "imxrt.h"
 #include "Arduino.h"
+#include "clock.h"
 
 namespace gpt {
     extern int waiting;
