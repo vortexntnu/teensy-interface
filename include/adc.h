@@ -16,8 +16,6 @@ namespace adc
     #define CONVST CORE_PIN35_BIT //GPIO 7
 
     // Interrupt Signals. 
-    #define BUSY   CORE_PIN54_BIT //GPIO 9
-
 
     static uint16_t ChannelA0Data;
     static uint16_t ChannelA1Data;
@@ -34,5 +32,10 @@ namespace adc
     void startConversion(); // setup periodic timer interrupts. 
     void stopConversion();  // stop periodic timer interrupts
 
+    void triggerConversion();
+    void readData();
+    void beginRead();
+    void stopRead();
+    void readData();
 
 };

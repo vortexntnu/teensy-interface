@@ -5,6 +5,8 @@
 namespace gpt {
     int waiting = 0;
 
+    void (*isr_timer_func)(void);
+
     void setup() {
         
         //Prescaler setup (We want to turn to divide by 1)
@@ -38,11 +40,15 @@ namespace gpt {
         NVIC_DISABLE_IRQ(IRQ_GPT1);
         if (GPT1_SR & GPT_SR_OF1) {
             GPT1_SR |= GPT_SR_OF1;
+            (*isr_timer_func)();
+            Serial.printf("Ready to read data.\n");
             
-            Serial.printf("Reached capture register interrupt!\n");
-            waiting = 0;
         }
 
         NVIC_ENABLE_IRQ(IRQ_GPT1);
+    }
+
+    void setUpGptISR(void_function_ptr function) {
+        isr_timer_func = function;
     }
 };

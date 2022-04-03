@@ -43,7 +43,6 @@ int main() {
     Serial.printf("Starting wait...\n");
     while (1)
     {
-        while(gpt::waiting) {}
         //CODE TO BE EXECUTED AFTER DELAY
     }
  
