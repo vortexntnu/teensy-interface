@@ -52,7 +52,7 @@ void setUpPeriodic() {
 
     PIT_TCTRL0 = 0x0; 
 
-    PIT_LDVAL3 = 0x0FFFFFFF; //max counting period
+    PIT_LDVAL3 = 0x0FFFFF; //max counting period
     PIT_TCTRL3 |= PIT_TCTRL_TIE;
     
     attachInterruptVector(IRQ_PIT, ISR);
