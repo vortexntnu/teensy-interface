@@ -1,26 +1,29 @@
 #include "gpioInterrupt.h"
+#include "core_pins.h"
 
-namespace gpio {
+namespace gpioInterrupt {
 
     volatile uint32_t triggeredPin;
-    uint32_t inputPinsMask = 0xC40000; //Activate GPIO8 pin 18, 22, 23
+    //uint32_t inputPinsMask = 0xC40000; //Activate GPIO8 pin 18, 22, 23
+    uint32_t inputPinsMask = ((0x1<<CORE_PIN28_BIT) | (0x1<<CORE_PIN30_BIT) | (0x1<<CORE_PIN31_BIT)); 
     uint32_t ICR2activeHighMask = 0xA020;
     uint32_t ICR2clearMask = ~(0xF030);
+
 
     void ISR(void) {
 
         NVIC_DISABLE_IRQ(IRQ_GPIO6789);
 
-        if ((0x40000) & GPIO8_ISR) {
-            GPIO8_ISR &= 0x40000;
+        if ((0x1<<CORE_PIN28_BIT) & GPIO8_ISR) {
+            GPIO8_ISR &= 0x1<<CORE_PIN28_BIT;
             Serial.print("Pin 28 detected a signal!\n");
         }
-        if ((0x400000) & GPIO8_ISR) {
-            GPIO8_ISR &= 0x400000;
+        if ((0x1<<CORE_PIN31_BIT) & GPIO8_ISR) {
+            GPIO8_ISR &= 0x1<<CORE_PIN31_BIT;
             Serial.print("Pin 31 detected a signal!\n");
         }
-        if ((0x800000) & GPIO8_ISR) {
-            GPIO8_ISR &= 0x800000;
+        if ((0x1<<CORE_PIN30_BIT) & GPIO8_ISR) {
+            GPIO8_ISR &= 0x1<<CORE_PIN30_BIT;
             Serial.print("Pin 30 detected a signal!\n");
         }
 

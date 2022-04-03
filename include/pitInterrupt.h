@@ -3,7 +3,7 @@
 #include "Arduino.h"
 #endif
 
-namespace timer {
+namespace periodicTimer {
 
 typedef void (*void_function_ptr)(void);
 
@@ -12,4 +12,4 @@ void setUpPeriodicISR(void_function_ptr function);
 void setup();
 void startPeriodic();
 
-} //timer 
+} //periodicTimer 

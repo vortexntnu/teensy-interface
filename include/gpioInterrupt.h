@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "stdlib.h"
 
-namespace gpio {
+namespace gpioInterrupt {
     extern volatile uint32_t triggeredPin;
 
     extern uint32_t inputPinsMask;
@@ -12,4 +12,6 @@ namespace gpio {
     void setup();
 
     void ISR(void);
+
+    void configPin(int pin, int mode);
 };

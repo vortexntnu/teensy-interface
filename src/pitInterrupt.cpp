@@ -1,7 +1,7 @@
-#include "pitInterrupts.h"
+#include "pitInterrupt.h"
 
 
-namespace timer {
+namespace periodicTimer {
 
 #ifdef SERIAL_DEBUG
 void dumpPeriodicRegisters() {

@@ -1,9 +1,29 @@
 #include "gpio.h"
 #include "Arduino.h"
 
-void gpio_setup()
+namespace gpio {
+
+void setup()
 {
+    IMXRT_GPIO6.GDIR = 0xFFFFFFFF;
+    IMXRT_GPIO7.GDIR = 0xFFFFFFFF;
+    IMXRT_GPIO6.DR_CLEAR = 0xFFFFFFFF;
+    IMXRT_GPIO7.DR_CLEAR = 0xFFFFFFFF;
     IMXRT_GPIO6.GDIR = 0x0;
+    IMXRT_GPIO7.GDIR = 0x0;
+    dump_GPIO_registers(); 
+}
+
+void configPin(int pin, int mode, IMXRT_GPIO_t& GPIO_n)  
+{
+    // set to output mode.
+    if (mode) {
+        GPIO_n.GDIR |= (1 << pin);
+    }
+    // set to input mode.
+    else {
+        GPIO_n.GDIR &= !(1 << pin); 
+    }
 }
 
 
@@ -12,6 +32,24 @@ inline void read_pin(int pin, uint16_t* data)
     *data |= (((IMXRT_GPIO6.DR)&(0x1<<pin))>>(pin-core_to_sample_bit[pin])); 
 }
 
+void write_pin(int pin, uint8_t value, IMXRT_GPIO_t& GPIO_n)
+{
+    if (value) {
+        GPIO_n.DR_SET |= (value << pin); 
+    }
+    else {
+        GPIO_n.DR_CLEAR |= (value << pin); 
+    }
+}
+
+void test_write()
+{
+    IMXRT_GPIO6.GDIR |= (0x1 << CORE_PIN21_BIT);
+    Serial.printf("%d\n",((IMXRT_GPIO7.DR) & (0x1<<CORE_PIN21_BIT))>>CORE_PIN21_BIT);
+    IMXRT_GPIO6.DR_SET |= (0x1 << CORE_PIN21_BIT);
+    Serial.printf("%d\n",((IMXRT_GPIO7.DR) & (0x1<<CORE_PIN21_BIT))>>CORE_PIN21_BIT);
+    IMXRT_GPIO6.DR_CLEAR |= (0x1 << CORE_PIN21_BIT);
+}
 
 uint16_t read_pins()
 {
@@ -33,3 +71,10 @@ uint16_t read_pins()
 
     return data;
 }
+
+void dump_GPIO_registers() {
+    Serial.printf("GPIOX.GDIR: 0x%X\nGPIOX.DR: 0x%X\n", IMXRT_GPIO6.GDIR, IMXRT_GPIO6.DR);
+    Serial.printf("GPIOX.GDIR: 0x%X\nGPIOX.DR: 0x%X\n", IMXRT_GPIO7.GDIR, IMXRT_GPIO7.DR);
+}
+
+} // gpio

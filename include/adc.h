@@ -1,16 +1,22 @@
+#pragma once
 #include "imxrt.h"
 #include "core_pins.h"
 
-#define CORE_PIN_37_BIT 19
-#define CORE_PIN_36_BIT 18
-#define CORE_PIN_35_BIT 28
 
 namespace adc
 {
 
-    #define _CS    CORE_PIN_37_BIT //GPIO 7
-    #define _RD    CORE_PIN_36_BIT //GPIO 7
-    #define CONVST CORE_PIN_35_BIT //GPIO 7
+    #define N_CHANNELS 8 // no. of channels on the ADC
+    #define N_HYDROPHONES 5
+    #define SAMPLE_SIZE 12  //bits in one sample
+
+    // Control signals
+    #define _CS    CORE_PIN37_BIT //GPIO 7
+    #define _RD    CORE_PIN36_BIT //GPIO 7
+    #define CONVST CORE_PIN35_BIT //GPIO 7
+
+    // Interrupt Signals. 
+    #define BUSY   CORE_PIN54_BIT //GPIO 9
 
 
     static uint16_t ChannelA0Data;
@@ -19,12 +25,14 @@ namespace adc
     static uint16_t ChannelB1Data;
     static uint16_t ChannelC0Data;
 
+    static uint16_t sampleData[N_CHANNELS];
 
-    void setup(); //setup the ADC
 
-    static void triggerConversion(void); 
-    
+    void setup(); // setup the ADC
+
+    //static void triggerConversion(void); // tell ADC to start converting.
     void startConversion(); // setup periodic timer interrupts. 
     void stopConversion();  // stop periodic timer interrupts
-    uint16_t getData(int hydrophone); 
+
+
 };

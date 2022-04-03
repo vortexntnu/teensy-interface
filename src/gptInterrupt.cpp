@@ -1,4 +1,4 @@
-#include "gptInterrupts.h"
+#include "gptInterrupt.h"
 
 // GENERAL PURPOSE TIMER SETUP, READ ON PAGE 2945-2969
 

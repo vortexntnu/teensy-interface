@@ -1,9 +1,9 @@
 #include <ethernetModule.h>
 #include <Arduino.h>
 #include "gpio.h"
-#include "pitInterrupts.h"
+#include "pitInterrupt.h"
 #include "gpioInterrupt.h"
-#include "gptInterrupts.h"
+#include "gptInterrupt.h"
 #include "adc.h"
 #include "clock.h"
 
@@ -17,28 +17,33 @@
     #endif
     eth::write(data); 
 }  */
+ 
 
 int main() {
 
     Serial.begin(9600);
     while (!Serial) {}
     Serial.printf("Serial connected\r\n");
-    //gpio_setup(); 
-    gpio::setup();
-    gpt::setup();
-    eth::setup();
-    clock::setup();
-    timer::setup();
+    //gpio::gpio_setup(); 
+    //gpioInterrupt::setup();
+    //gpt::setup();
+    //eth::setup();
     //timer::setUpPeriodicISR(print_on_interrupt);
     //timer::startPeriodic();
+    Serial.printf("Set up interrupts and timers\n"); 
 
-    gpt::startTimer(240000000); //Takes in amount of clock cycles it needs before execute
+    //gpt::startTimer(240000000); //Takes in amount of clock cycles it needs before execute 
+
+    adc::setup(); 
+
+
+    //adc::stopConversion(); 
+
+    //adc::startConversion();
 
     while (1)
     {
 
-        Serial.printf("Starting wait...\n");
-        while(gpt::waiting) {}
 
         //CODE TO BE EXECUTED AFTER DELAY
     }
