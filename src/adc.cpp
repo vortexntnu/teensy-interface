@@ -25,7 +25,6 @@ void setup() {
     gpio::write_pin(_RD, 1, IMXRT_GPIO7); 
 
     #ifdef SERIAL_DEBUG
-    gpio::dump_GPIO_registers();
     Serial.printf("_CS: %d\n", (((IMXRT_GPIO7.DR) & (0x1<<_CS))>>_CS));
     Serial.printf("_RD: %u\n", (((IMXRT_GPIO7.DR) & (0x1<<_RD))>>_RD));
     #endif

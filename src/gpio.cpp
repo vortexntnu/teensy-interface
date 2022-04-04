@@ -11,7 +11,9 @@ void setup()
     IMXRT_GPIO7.DR_CLEAR = 0xFFFFFFFF;
     IMXRT_GPIO6.GDIR = 0x0;
     IMXRT_GPIO7.GDIR = 0x0;
+    #ifdef SERIAL_DEBUG
     dump_GPIO_registers(); 
+    #endif
 }
 
 void configPin(int pin, int mode, IMXRT_GPIO_t& GPIO_n)  
@@ -35,10 +37,10 @@ inline void read_pin(int pin, uint16_t* data)
 void write_pin(int pin, uint8_t value, IMXRT_GPIO_t& GPIO_n)
 {
     if (value) {
-        GPIO_n.DR_SET |= (value << pin); 
+        GPIO_n.DR_SET |= (1 << pin); 
     }
     else {
-        GPIO_n.DR_CLEAR |= (value << pin); 
+        GPIO_n.DR_CLEAR |= (1 << pin); 
     }
 }
 
