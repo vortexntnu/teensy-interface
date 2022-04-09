@@ -29,7 +29,9 @@ namespace gpt {
     }
 
     void startTimer(int clockcycles) {
+        #ifdef SERIAL_DEBUG
         Serial.printf("Starting timer\n");
+        #endif
         GPT1_OCR1 = clockcycles; //Sets compare register value
         GPT1_CR |= GPT_CR_EN; //Turns on timer
     }

@@ -36,22 +36,17 @@ int main() {
     while (!Serial) {}
     Serial.printf("Serial connected\r\n");
     #endif
-    
+    #ifdef PIN_DEBUG
     clock::setup();
     gpt::setup();
-    #ifdef PIN_DEBUG
     gpt::setUpGptISR(*gptIndicator);
-    #endif
     gpio::setup();
+    #endif
     //gpioInterrupt::setup();
     //eth::setup();
     //timer::setUpPeriodicISR(print_on_interrupt);
     //timer::startPeriodic();
-
-    //Serial.printf("Set up interrupts and timers\n"); 
-
-    //adc::setup(); 
-
+    //adc::setup();
     //adc::stopConversion(); 
     
     while (1)
