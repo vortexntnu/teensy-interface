@@ -29,22 +29,16 @@ namespace gpt {
     }
 
     void startTimer(int clockcycles) {
-        #ifdef SERIAL_DEBUG
-        Serial.printf("Starting timer\n");
-        #endif
         GPT1_OCR1 = clockcycles; //Sets compare register value
         GPT1_CR |= GPT_CR_EN; //Turns on timer
     }
 
     void ISR(void) {
         GPT1_CR &= ~GPT_CR_EN; //Turns off timer
+        (*isr_timer_func)();
         NVIC_DISABLE_IRQ(IRQ_GPT1);
         if (GPT1_SR & GPT_SR_OF1) {
             GPT1_SR |= GPT_SR_OF1;
-            #ifdef SERIAL_DEBUG
-            Serial.printf("Ready to read data.\n");
-            #endif
-            (*isr_timer_func)();
         }
 
         NVIC_ENABLE_IRQ(IRQ_GPT1);
