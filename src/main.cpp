@@ -21,10 +21,9 @@
 #ifdef PIN_DEBUG
 void setupgptIndicator() {
     gpio::configPin(CORE_PIN32_BIT, 1, IMXRT_GPIO7);
-    gpio::write_pin(CORE_PIN32_BIT, 1, IMXRT_GPIO7);
 }
 void gptIndicator() {
-    gpio::write_pin(CORE_PIN32_BIT, 0, IMXRT_GPIO7);
+    gpio::toggle_pin(CORE_PIN32_BIT, IMXRT_GPIO7);
 }
 #endif
 
@@ -37,9 +36,8 @@ int main() {
     Serial.printf("Serial connected\r\n");
     #endif
     
-    #ifdef ADC_DEBUG
+    #ifdef ADC_DEBUG_CHRISTIAN
     adc::setup();
-
     #endif
 
     #ifdef PIN_DEBUG
@@ -51,11 +49,14 @@ int main() {
     
     while (1)
     {   
+        adc::startConversion();
+        //gpio::write_pin(CONVST, 1, IMXRT_GPIO7);
         #ifdef PIN_DEBUG
         setupgptIndicator();
         gpt::startTimer(3750); //Takes in amount of clock cycles it needs before execute
         Serial.printf("2sec delay\n");
         delay(2000);
         #endif
+        delay(1000);
     }
 }

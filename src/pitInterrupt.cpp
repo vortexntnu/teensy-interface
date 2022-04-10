@@ -19,28 +19,37 @@ void dumpPeriodicRegisters() {
 
 
 static void dummyISR(void) {}
-void (*isr_periodic_func)(void) = dummyISR; 
+void (*isr_periodic_func3)(void) = dummyISR; 
+void (*isr_periodic_func2)(void) = dummyISR;
 
 void ISR() {
-    __disable_irq();
+    NVIC_DISABLE_IRQ(IRQ_PIT);
 
-    PIT_TFLG3 = 0x1;
-    (*isr_periodic_func)(); 
+    if (PIT_TFLG3) {
+        PIT_TFLG3 = 0x1;
+        (*isr_periodic_func3)(); 
+    }
+    
+    if (PIT_TFLG2) {
+        (*isr_periodic_func2)();
+    }
 
-    __enable_irq();
+    NVIC_ENABLE_IRQ(IRQ_PIT);
 }
 
-void setUpPeriodicISR(void_function_ptr function) {
-    isr_periodic_func = function; 
+void setUpPeriodicISR3(void_function_ptr function) {
+    isr_periodic_func3 = function; 
+}
+
+void setUpPeriodicISR2(void_function_ptr function) {
+    isr_periodic_func2 = function; 
 }
 
 void setup() {
     PIT_MCR &= ~PIT_MCR_MDIS;
 
-    PIT_TCTRL0 = 0x0; 
+    PIT_TCTRL0 = 0x0;
 
-    PIT_LDVAL3 = 0x0FFFFF; //max counting period
-    PIT_TCTRL3 |= PIT_TCTRL_TIE;
     
     attachInterruptVector(IRQ_PIT, ISR);
     NVIC_ENABLE_IRQ(IRQ_PIT);
@@ -49,14 +58,38 @@ void setup() {
     #endif
 }
 
-void startPeriodic() {
+void startPeriodic3(int clockcycles) {
     #ifdef SERIAL_DEBUG
     Serial.println(">>> timer::startPeriodic()");
 #endif
+    PIT_TCTRL3 |= PIT_TCTRL_TIE;
+    PIT_LDVAL3 = clockcycles; //counting period
     PIT_TCTRL3 |= PIT_TCTRL_TEN; // Enable Timer
 #ifdef SERIAL_DEBUG
     Serial.println("<<< timer::startPeriodic()");
 #endif
+}
+
+void startPeriodic2(int clockcycles) {
+    #ifdef SERIAL_DEBUG
+    Serial.println(">>> timer::startPeriodic()");
+#endif
+    PIT_TCTRL2 |= PIT_TCTRL_TIE;
+    PIT_LDVAL2 = clockcycles; //counting period
+    PIT_TCTRL2 |= PIT_TCTRL_TEN; // Enable Timer
+#ifdef SERIAL_DEBUG
+    Serial.println("<<< timer::startPeriodic()");
+#endif
+}
+
+void stopPeriodic2() {
+    PIT_TCTRL2 &= ~PIT_TCTRL_TIE;
+    PIT_TCTRL2 &= ~PIT_TCTRL_TEN; // Enable Timer
+}
+    
+void stopPeriodic3() {
+    PIT_TCTRL3 &= ~PIT_TCTRL_TIE;
+    PIT_TCTRL3 &= ~PIT_TCTRL_TEN; // Enable Timer
 }
 
 } //namespace timer

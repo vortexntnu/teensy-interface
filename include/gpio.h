@@ -20,6 +20,10 @@ inline void read_pin(int pin, uint16_t* data);
 
 void write_pin(int pin, uint8_t value, IMXRT_GPIO_t& GPIO_n); 
 
+#ifdef ADC_DEBUG_CHRISTIAN
+void toggle_pin(int pin, IMXRT_GPIO_t& GPIO_n);
+#endif 
+
 uint16_t read_pins();
 
 void dump_GPIO_registers(); 

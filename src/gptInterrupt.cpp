@@ -1,4 +1,7 @@
 #include "gptInterrupt.h"
+#ifdef ADC_DEBUG_CHRISTIAN
+#include "gpio.h"
+#endif
 
 // GENERAL PURPOSE TIMER SETUP, READ ON PAGE 2945-2969
 
@@ -30,15 +33,21 @@ namespace gpt {
 
     void startTimer(int clockcycles) {
         GPT1_OCR1 = clockcycles; //Sets compare register value
+        #ifdef ADC_DEBUG_CHRISTIAN
+        gpio::toggle_pin(CORE_PIN32_BIT, IMXRT_GPIO7);
+        #endif
         GPT1_CR |= GPT_CR_EN; //Turns on timer
     }
 
     void ISR(void) {
-        GPT1_CR &= ~GPT_CR_EN; //Turns off timer
-        (*isr_timer_func)();
+        
         NVIC_DISABLE_IRQ(IRQ_GPT1);
         if (GPT1_SR & GPT_SR_OF1) {
+
+            
+            GPT1_CR &= ~GPT_CR_EN; //Turns off timer
             GPT1_SR |= GPT_SR_OF1;
+            (*isr_timer_func)();
         }
 
         NVIC_ENABLE_IRQ(IRQ_GPT1);

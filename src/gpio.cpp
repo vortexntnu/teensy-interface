@@ -44,6 +44,12 @@ void write_pin(int pin, uint8_t value, IMXRT_GPIO_t& GPIO_n)
     }
 }
 
+#ifdef ADC_DEBUG_CHRISTIAN
+void toggle_pin(int pin, IMXRT_GPIO_t& GPIO_n) {
+    GPIO_n.DR_TOGGLE |= (1 << pin);
+}
+
+#endif
 void test_write()
 {
     IMXRT_GPIO6.GDIR |= (0x1 << CORE_PIN21_BIT);
