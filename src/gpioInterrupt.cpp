@@ -6,11 +6,11 @@ namespace gpioInterrupt {
 
 volatile uint32_t triggeredPin;
 // uint32_t inputPinsMask = 0xC40000; //Activate GPIO8 pin 18, 22, 23
-uint32_t inputPinsMask = ((0x1 << CORE_PIN28_BIT) | (0x1 << CORE_PIN30_BIT) | (0x1 << INT));
+uint32_t inputPinsMask = ((0x1 << CORE_PIN28_BIT) | (0x1 << CORE_PIN30_BIT) | (0x1 << BUSY));
 // uint32_t ICR2activeHighMask = 0xA020;
 uint32_t ICR2clearMask = ~(0xF030);
 
-uint32_t intConfig = ((2 << (2 * (INT % 16)))); // set interrupt pin to be rising edge sensitive.
+uint32_t intConfig = ((2 << (2 * (BUSY % 16)))); // set interrupt pin to be rising edge sensitive.
 
 void (*isr_convert_func)(void);
 
@@ -29,9 +29,9 @@ void ISR(void)
         Serial.print("Pin 31 detected a signal!\n");
     }
     */
-    if ((0x1 << INT) & GPIO8_ISR)
+    if ((0x1 << BUSY) & GPIO8_ISR)
     {
-        GPIO8_ISR &= 0x1 << INT;
+        GPIO8_ISR &= 0x1 << BUSY;
     #ifdef SERIAL_DEBUG
         Serial.print("ADC finished converting\n");
     #endif
