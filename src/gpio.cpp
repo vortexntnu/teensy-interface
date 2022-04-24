@@ -61,7 +61,7 @@ void test_write()
 
 uint16_t read_pins()
 {
-    uint16_t data =0;
+    uint16_t data = 0;
 
     read_pin(CORE_PIN38_BIT, &data);
     read_pin(CORE_PIN39_BIT, &data);

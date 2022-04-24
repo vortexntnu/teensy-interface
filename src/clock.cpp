@@ -14,7 +14,6 @@ namespace clock {
         CCM_CSCMR1 &= ~CCM_CSCMR1_PERCLK_CLK_SEL;
         CCM_CSCMR1 &= ~CCM_CSCMR1_PERCLK_PODF(0); // divide /1
         // Clock: 150 MHz -> Period: 6.667 ns (IN THEORY)
-        // Clock: 134 MHz -> Period: 7.467 ns (IN PRACTICE)
         #endif
 
         #ifndef ADC_DEBUG_CHRISTIAN

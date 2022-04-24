@@ -36,4 +36,5 @@ namespace adc
     void stopRead();
     void readData();
     void busyOVER();
+    void readLoop();
 };

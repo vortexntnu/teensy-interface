@@ -72,8 +72,8 @@ void triggerConversion() {
     if (1) {gpio::write_pin(CONVST,1,IMXRT_GPIO7);} //This creates a 50ns delay
     gpio::write_pin(CONVST,0,IMXRT_GPIO7);
 
-    beginRead();
-
+    //beginRead();
+    readLoop();
     #ifndef ADC_DEBUG_CHRISTIAN
     gpioInterrupt::setUpGpioISR(beginRead);
     #endif //DISABLING THIS AND SIMULATING "BUSY" INSTEAD
@@ -98,5 +98,13 @@ void readData() {
         gpio::write_pin(_RD, 0, IMXRT_GPIO7);
         gpt::startTimer(132000000);
     } */
+}
+
+void readLoop() {
+    for (int i = 0; i<8; i++) {
+    gpio::write_pin(_RD, 0, IMXRT_GPIO7);
+    sampleData[channels_processed] = gpio::read_pins();
+    gpio::write_pin(_RD, 1, IMXRT_GPIO7);
+    }
 }
 } // adc
