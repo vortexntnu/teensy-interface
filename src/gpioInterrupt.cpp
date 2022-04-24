@@ -9,7 +9,7 @@ namespace gpioInterrupt {
     //uint32_t ICR2activeHighMask = 0xA020;
     uint32_t ICR2clearMask = ~(0xF030);
 
-    uint32_t interruptConfig = ((2<<(2*(INT % 16)))); //rising edge sensitive. 
+    uint32_t interruptConfig = (2 << 30) //((2<<(2*(BUSY % 16)))); //rising edge sensitive. 
 
     void (*isr_convert_func)(void);
 
@@ -28,8 +28,8 @@ namespace gpioInterrupt {
             Serial.print("Pin 31 detected a signal!\n");
         }
         */
-        if ((0x1<<INT) & GPIO8_ISR) {
-            GPIO8_ISR &= 0x1<<INT;
+        if ((0x1<<BUSY) & GPIO8_ISR) {
+            GPIO8_ISR &= 0x1<<BUSY;
             Serial.print("ADC finished converting\n");
             (*isr_convert_func)(); // execute busy function on interrupt.
         }

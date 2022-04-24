@@ -4,7 +4,7 @@
 
 namespace gpioInterrupt {
 
-    #define INT   CORE_PIN31_BIT //GPIO 9
+    #define BUSY   CORE_PIN31_BIT //GPIO 9
     
     typedef void (*void_function_ptr)(void);
 
