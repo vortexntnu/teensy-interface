@@ -18,32 +18,44 @@
     eth::write(data); 
 }  */
  
+#ifdef PIN_DEBUG
+void setupgptIndicator() {
+    gpio::configPin(CORE_PIN32_BIT, 1, IMXRT_GPIO7);
+    gpio::write_pin(CORE_PIN32_BIT, 1, IMXRT_GPIO7);
+}
+void gptIndicator() {
+    gpio::write_pin(CORE_PIN32_BIT, 0, IMXRT_GPIO7);
+}
+#endif
+
+
 
 int main() {
-
+    #ifdef SERIAL_DEBUG
     Serial.begin(9600);
     while (!Serial) {}
     Serial.printf("Serial connected\r\n");
-    //gpio::gpio_setup(); 
-    //gpioInterrupt::setup();
-    //gpt::setup();
-    //eth::setup();
-    //timer::setUpPeriodicISR(print_on_interrupt);
-    //timer::startPeriodic();
-    Serial.printf("Set up interrupts and timers\n"); 
+    #endif
+    
+    #ifdef ADC_DEBUG
+    adc::setup();
 
-    //gpt::startTimer(240000000); //Takes in amount of clock cycles it needs before execute 
+    #endif
 
-    adc::setup(); 
-
-
-    //adc::stopConversion(); 
-
-    gpt::startTimer(132000000); //Takes in amount of clock cycles it needs before execute
-    Serial.printf("Starting wait...\n");
+    #ifdef PIN_DEBUG
+    clock::setup();
+    gpt::setup();
+    gpt::setUpGptISR(*gptIndicator);
+    gpio::setup();
+    #endif
+    
     while (1)
-    {
-        //CODE TO BE EXECUTED AFTER DELAY
+    {   
+        #ifdef PIN_DEBUG
+        setupgptIndicator();
+        gpt::startTimer(3750); //Takes in amount of clock cycles it needs before execute
+        Serial.printf("2sec delay\n");
+        delay(2000);
+        #endif
     }
- 
 }

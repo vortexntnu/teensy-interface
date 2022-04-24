@@ -16,7 +16,6 @@ namespace adc
     #define CONVST CORE_PIN35_BIT //GPIO 7
 
     // Interrupt Signals. 
-
     static uint16_t ChannelA0Data;
     static uint16_t ChannelA1Data;
     static uint16_t ChannelB0Data;
