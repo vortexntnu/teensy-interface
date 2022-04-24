@@ -21,8 +21,8 @@
 
 
 static void blink_on_interrupt(void) {
-    //gpio::write_pin(LED, 1, IMXRT_GPIO6);
-    //digitalWrite(LED_BUILTIN, HIGH);
+    gpio::write_pin(CORE_PIN13_BIT, 1, IMXRT_GPIO6);
+    digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void test_interrupts()
@@ -30,8 +30,7 @@ void test_interrupts()
     gpio::configPin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
     gpio::write_pin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
 
-    //gpio::configPin(LED, 1, IMXRT_GPIO6);
-
+    gpio::configPin(CORE_PIN13_BIT, 1, IMXRT_GPIO6); // config LED. 
 }
 
 
@@ -53,9 +52,9 @@ int main() {
     //adc::setup(); 
     gpio::setup(); 
     gpioInterrupt::setup();
-    //test_interrupts();
+    test_interrupts();
     Serial.printf("Set up interrupts and timers\n"); 
-    //gpioInterrupt::setUpGpioISR(blink_on_interrupt);
+    gpioInterrupt::setUpGpioISR(blink_on_interrupt);
     //adc::stopConversion(); 
 
     //gpt::startTimer(132000000); //Takes in amount of clock cycles it needs before execute
