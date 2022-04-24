@@ -39,7 +39,7 @@ void setup() {
 
     PIT_TCTRL0 = 0x0; 
 
-    PIT_LDVAL3 = 0x0FFFFF; //max counting period
+    PIT_LDVAL3 = 0x0FFFFF;
     PIT_TCTRL3 |= PIT_TCTRL_TIE;
     
     attachInterruptVector(IRQ_PIT, ISR);
@@ -50,7 +50,7 @@ void setup() {
 }
 
 void startPeriodic() {
-    #ifdef SERIAL_DEBUG
+#ifdef SERIAL_DEBUG
     Serial.println(">>> timer::startPeriodic()");
 #endif
     PIT_TCTRL3 |= PIT_TCTRL_TEN; // Enable Timer

@@ -1,11 +1,12 @@
 #include <ethernetModule.h>
 #include <Arduino.h>
+
 #include "gpio.h"
 #include "pitInterrupt.h"
 #include "gpioInterrupt.h"
 #include "gptInterrupt.h"
-#include "adc.h"
 #include "clock.h"
+#include "adc.h"
 
 
 // This can be any wanted character array / string
@@ -17,7 +18,22 @@
     #endif
     eth::write(data); 
 }  */
- 
+
+
+static void blink_on_interrupt(void) {
+    //gpio::write_pin(LED, 1, IMXRT_GPIO6);
+    //digitalWrite(LED_BUILTIN, HIGH);
+}
+
+void test_interrupts()
+{
+    gpio::configPin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
+    gpio::write_pin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
+
+    //gpio::configPin(LED, 1, IMXRT_GPIO6);
+
+}
+
 
 int main() {
 
@@ -30,16 +46,19 @@ int main() {
     //eth::setup();
     //timer::setUpPeriodicISR(print_on_interrupt);
     //timer::startPeriodic();
-    Serial.printf("Set up interrupts and timers\n"); 
+    
 
     //gpt::startTimer(240000000); //Takes in amount of clock cycles it needs before execute 
 
-    adc::setup(); 
-
-
+    //adc::setup(); 
+    gpio::setup(); 
+    gpioInterrupt::setup();
+    //test_interrupts();
+    Serial.printf("Set up interrupts and timers\n"); 
+    //gpioInterrupt::setUpGpioISR(blink_on_interrupt);
     //adc::stopConversion(); 
 
-    gpt::startTimer(132000000); //Takes in amount of clock cycles it needs before execute
+    //gpt::startTimer(132000000); //Takes in amount of clock cycles it needs before execute
     Serial.printf("Starting wait...\n");
     while (1)
     {
