@@ -18,6 +18,10 @@
     #endif
     eth::write(data); 
 }  */
+
+enum state {
+    CONFIG_ADC, SAMPLE_DATA
+};
  
 #ifdef PIN_DEBUG
 void setupgptIndicator() {

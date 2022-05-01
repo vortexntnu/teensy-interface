@@ -97,18 +97,21 @@ void configureADC() {
     gpio::write_pin(_CS, 0, IMXRT_GPIO7);
 
     gpio::configPin(_WR, 1, IMXRT_GPIO7);
-    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start writing to ADC.
+    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 1st write access
 
     
-    int BUSY_SEL = CORE_PIN21_BIT; //
+    int BUSY_SEL = CORE_PIN21_BIT; // set this pin to high to enable interrupt from BUSY pin on ADC.
+    //int BUSY_SEL = CORE_PIN16_BIT; // alternative
     int BUSY_POL_BIT = 26; 
 
     gpio::configPin(BUSY_SEL, 1, IMXRT_GPIO6);
+    gpio::write_pin(BUSY_SEL, 1, IMXRT_GPIO6);
 
-
-
-
-    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop writing to ADC.
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 1st write access
+    delayNanoseconds(10); // t_WRH
+    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 2nd write access
+    if (1);
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 2nd write access
 
 }
 
