@@ -5,7 +5,6 @@
 
 namespace adc
 {
-
     #define N_CHANNELS 8 // no. of channels on the ADC
     #define N_HYDROPHONES 5
     #define SAMPLE_SIZE 12  //bits in one sample
@@ -17,11 +16,11 @@ namespace adc
     #define _WR    CORE_PIN34_BIT //GPIO 7
 
     // Interrupt Signals. 
-    static uint16_t ChannelA0Data;
+    /* static uint16_t ChannelA0Data;
     static uint16_t ChannelA1Data;
     static uint16_t ChannelB0Data;
     static uint16_t ChannelB1Data;
-    static uint16_t ChannelC0Data;
+    static uint16_t ChannelC0Data; */
 
     static uint16_t sampleData[N_CHANNELS];
 
@@ -38,5 +37,6 @@ namespace adc
     void beginRead();
     void stopRead();
     void readData();
-
+    void busyOVER();
+    void readLoop();
 };
