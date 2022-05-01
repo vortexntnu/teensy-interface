@@ -1,11 +1,12 @@
 #include <ethernetModule.h>
 #include <Arduino.h>
+
 #include "gpio.h"
 #include "pitInterrupt.h"
 #include "gpioInterrupt.h"
 #include "gptInterrupt.h"
-#include "adc.h"
 #include "clock.h"
+#include "adc.h"
 
 
 // This can be any wanted character array / string
@@ -28,6 +29,21 @@ void gptIndicator() {
 }
 #endif
 
+
+
+
+static void blink_on_interrupt(void) {
+    gpio::write_pin(CORE_PIN13_BIT, 1, IMXRT_GPIO6);
+    digitalWrite(LED_BUILTIN, HIGH);
+}
+
+void test_interrupts()
+{
+    gpio::configPin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
+    gpio::write_pin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
+
+    gpio::configPin(CORE_PIN13_BIT, 1, IMXRT_GPIO6); // config LED. 
+}
 
 
 int main() {

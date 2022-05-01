@@ -21,4 +21,6 @@ namespace gpioInterrupt {
     void setUpGpioISR(void_function_ptr function);
 
     void configPin(int pin, int mode);
+
+    void dump_GPIO_interrupt_registers();
 };
