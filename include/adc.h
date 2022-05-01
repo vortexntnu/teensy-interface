@@ -14,6 +14,7 @@ namespace adc
     #define _CS    CORE_PIN37_BIT //GPIO 7
     #define _RD    CORE_PIN36_BIT //GPIO 7
     #define CONVST CORE_PIN35_BIT //GPIO 7
+    #define _WR    CORE_PIN34_BIT //GPIO 7
 
     // Interrupt Signals. 
     static uint16_t ChannelA0Data;
@@ -26,6 +27,7 @@ namespace adc
 
 
     void setup(); // setup the ADC
+    void configureADC(); // configure ADC so it's ready to send data.
 
     //static void triggerConversion(void); // tell ADC to start converting.
     void startConversion(); // setup periodic timer interrupts. 

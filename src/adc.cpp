@@ -20,9 +20,11 @@ void setup() {
     gpio::configPin(CONVST, 1, IMXRT_GPIO7);
     gpio::configPin(_CS, 1, IMXRT_GPIO7);
     gpio::configPin(_RD, 1, IMXRT_GPIO7);
+    gpio::configPin(_WR, 1, IMXRT_GPIO7);
 
     gpio::write_pin(_CS, 0, IMXRT_GPIO7);
     gpio::write_pin(_RD, 1, IMXRT_GPIO7); 
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7);
 
     #ifdef SERIAL_DEBUG
     Serial.printf("_CS: %d\n", (((IMXRT_GPIO7.DR) & (0x1<<_CS))>>_CS));
@@ -83,5 +85,32 @@ void readData() {
         gpt::startTimer(132000000);
     }
 }
+
+
+void configureADC() {
+
+    // see write access timing diagram on p.19 of ADC data sheet.
+    // when _CS and _WR are low, we can write to the ADC config registers.
+    // writes to the 16 most significant bits first.
+
+    gpio::configPin(_CS, 1, IMXRT_GPIO7);
+    gpio::write_pin(_CS, 0, IMXRT_GPIO7);
+
+    gpio::configPin(_WR, 1, IMXRT_GPIO7);
+    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start writing to ADC.
+
+    
+    int BUSY_SEL = CORE_PIN21_BIT; //
+    int BUSY_POL_BIT = 26; 
+
+    gpio::configPin(BUSY_SEL, 1, IMXRT_GPIO6);
+
+
+
+
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop writing to ADC.
+
+}
+
 
 } // adc

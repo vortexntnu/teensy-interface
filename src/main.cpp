@@ -29,9 +29,6 @@ void gptIndicator() {
 }
 #endif
 
-
-
-
 static void blink_on_interrupt(void) {
     gpio::write_pin(CORE_PIN13_BIT, 1, IMXRT_GPIO6);
     digitalWrite(LED_BUILTIN, HIGH);
