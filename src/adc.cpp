@@ -62,6 +62,7 @@ void beginRead() {
 
 void stopRead() {
     periodicTimer::stopPeriodic2();
+
     //void (*void_func)(void);
     // set gpio interrupt to do nothing.
     //gpioInterrupt::setUpGpioISR(void_func);
@@ -102,11 +103,21 @@ void readData() {
 }
 
 void readLoop() {
-    for (int i = 0; i<8; i++) {
-    gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-    sampleData[channels_processed] = gpio::read_pins();
-    gpio::write_pin(_RD, 1, IMXRT_GPIO7);
+    for (int i = 0; i < N_CHANNELS; i++) {
+        gpio::write_pin(_RD, 0, IMXRT_GPIO7);
+        sampleData[channels_processed] = gpio::read_pins();
+        
+        gpio::write_pin(_RD, 1, IMXRT_GPIO7);
     }
+    transferData();
+}
+
+void transferData() {
+    ChannelA0.insert(sampleData[0]);
+    ChannelA1.insert(sampleData[1]);
+    ChannelB0.insert(sampleData[2]);
+    ChannelB1.insert(sampleData[3]);
+    ChannelC0.insert(sampleData[4]);
 }
 
 void configureADC() {

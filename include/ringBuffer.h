@@ -1,5 +1,5 @@
 #include <memory>
-
+#pragma once
 
 class RingBuffer {
 
@@ -23,6 +23,10 @@ class RingBuffer {
             int item = buffer[start++];
             start %= SIZE;
             return item;
+        }
+
+        uint16_t operator++(int) {
+            return this->get();
         }
 
 

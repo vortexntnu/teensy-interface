@@ -1,7 +1,7 @@
 #pragma once
 #include "imxrt.h"
 #include "core_pins.h"
-
+#include "ringBuffer.h"
 
 namespace adc
 {
@@ -21,6 +21,12 @@ namespace adc
     static uint16_t ChannelB0Data;
     static uint16_t ChannelB1Data;
     static uint16_t ChannelC0Data; */
+    static RingBuffer ChannelA0;
+    static RingBuffer ChannelA1;
+    static RingBuffer ChannelB0;
+    static RingBuffer ChannelB1;
+    static RingBuffer ChannelB2;
+    static RingBuffer ChannelC0;
 
     static uint16_t sampleData[N_CHANNELS];
 
@@ -39,4 +45,6 @@ namespace adc
     void readData();
     void busyOVER();
     void readLoop();
+
+    void transferData(); //transfer data to ringbuffers.
 };

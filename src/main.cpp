@@ -19,8 +19,8 @@
     eth::write(data); 
 }  */
 
-enum state {
-    CONFIG_ADC, SAMPLE_DATA
+enum State {
+    IDLE, CONFIG_ADC, SAMPLE
 };
  
 #ifdef PIN_DEBUG
@@ -63,9 +63,31 @@ int main() {
     gpt::setUpGptISR(*gptIndicator);
     gpio::setup();
     #endif
+
+    State state = State::IDLE;
     
     while (1)
     {   
+        switch (state)
+        {
+        case IDLE: {
+
+            break;
+        }
+        case CONFIG_ADC: {
+            
+            state = State::IDLE;
+            break;
+        }
+        case SAMPLE: {
+            adc::startConversion();
+
+            break;
+        }
+        default:
+            break;
+        }
+
         adc::startConversion();
         //gpio::write_pin(CONVST, 1, IMXRT_GPIO7);
         #ifdef PIN_DEBUG
