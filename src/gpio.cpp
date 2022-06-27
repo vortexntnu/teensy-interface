@@ -5,15 +5,18 @@ namespace gpio {
 
 void setup()
 {
+#ifdef SERIAL_DEBUG
+    Serial.printf("Setting up GPIO registers\n");
+#endif
     IMXRT_GPIO6.GDIR = 0xFFFFFFFF;
     IMXRT_GPIO7.GDIR = 0xFFFFFFFF;
     IMXRT_GPIO6.DR_CLEAR = 0xFFFFFFFF;
     IMXRT_GPIO7.DR_CLEAR = 0xFFFFFFFF;
     IMXRT_GPIO6.GDIR = 0x0;
     IMXRT_GPIO7.GDIR = 0x0;
-    #ifdef SERIAL_DEBUG
+#ifdef SERIAL_DEBUG
     dump_GPIO_registers(); 
-    #endif
+#endif
 }
 
 void configPin(int pin, int mode, IMXRT_GPIO_t& GPIO_n)  
@@ -82,8 +85,8 @@ uint16_t read_pins()
 }
 
 void dump_GPIO_registers() {
-    Serial.printf("GPIOX.GDIR: 0x%X\nGPIOX.DR: 0x%X\n", IMXRT_GPIO6.GDIR, IMXRT_GPIO6.DR);
-    Serial.printf("GPIOX.GDIR: 0x%X\nGPIOX.DR: 0x%X\n", IMXRT_GPIO7.GDIR, IMXRT_GPIO7.DR);
+    Serial.printf("GPIO6\nGDIR: 0x%X\nDR: 0x%X\n", IMXRT_GPIO6.GDIR, IMXRT_GPIO6.DR);
+    Serial.printf("GPIO7\nGDIR: 0x%X\nDR: 0x%X\n", IMXRT_GPIO7.GDIR, IMXRT_GPIO7.DR);
 }
 
 } // gpio

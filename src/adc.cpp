@@ -20,11 +20,12 @@ void setup() {
     gpio::configPin(CONVST, 1, IMXRT_GPIO7);
     gpio::configPin(_CS, 1, IMXRT_GPIO7);
     gpio::configPin(_RD, 1, IMXRT_GPIO7);
+    gpio::configPin(_WR, 1, IMXRT_GPIO7);
 
-    gpio::write_pin(CONVST, 0, IMXRT_GPIO7);    //DEFAULT LOW
-    gpio::write_pin(_CS, 0, IMXRT_GPIO7);       //DEFAULT LOW
-    gpio::write_pin(_RD, 1, IMXRT_GPIO7);       //DEFAULT HIGH
-    
+    gpio::configPin(CONVST, 0, IMXRT_GPIO7);
+    gpio::write_pin(_CS, 0, IMXRT_GPIO7);
+    gpio::write_pin(_RD, 1, IMXRT_GPIO7); 
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7);
 
     #ifdef SERIAL_DEBUG
     Serial.printf("_CS: %d\n", (((IMXRT_GPIO7.DR) & (0x1<<_CS))>>_CS));
@@ -61,6 +62,7 @@ void beginRead() {
 
 void stopRead() {
     periodicTimer::stopPeriodic2();
+
     //void (*void_func)(void);
     // set gpio interrupt to do nothing.
     //gpioInterrupt::setUpGpioISR(void_func);
@@ -110,5 +112,45 @@ void readLoop() {
         if (1) {gpio::write_pin(_RD, 0, IMXRT_GPIO7);}
         gpio::write_pin(_RD, 1, IMXRT_GPIO7);
     }
+    transferData();
 }
+
+void transferData() {
+    ChannelA0.insert(sampleData[0]);
+    ChannelA1.insert(sampleData[1]);
+    ChannelB0.insert(sampleData[2]);
+    ChannelB1.insert(sampleData[3]);
+    ChannelC0.insert(sampleData[4]);
+}
+
+void configureADC() {
+
+    // see write access timing diagram on p.19 of ADC data sheet.
+    // when _CS and _WR are low, we can write to the ADC config registers.
+    // writes to the 16 most significant bits first.
+
+    gpio::configPin(_CS, 1, IMXRT_GPIO7);
+    gpio::write_pin(_CS, 0, IMXRT_GPIO7);
+
+    gpio::configPin(_WR, 1, IMXRT_GPIO7);
+    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 1st write access
+
+    
+    int BUSY_SEL = CORE_PIN21_BIT; // set this pin to high to enable interrupt from BUSY pin on ADC.
+    //int BUSY_SEL = CORE_PIN16_BIT; // alternative
+    int BUSY_POL_BIT = 26; 
+
+    gpio::configPin(BUSY_SEL, 1, IMXRT_GPIO6);
+    gpio::write_pin(BUSY_SEL, 1, IMXRT_GPIO6);
+
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 1st write access
+    delayNanoseconds(10); // t_WRH
+    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 2nd write access
+    if (1);
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 2nd write access
+
+}
+
+
+
 } // adc
