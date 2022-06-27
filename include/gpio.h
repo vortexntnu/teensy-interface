@@ -16,7 +16,7 @@ void setup();
 // number on the teensy. 
 void configPin(int pin, int mode, IMXRT_GPIO_t& GPIO_n);
 
-inline void read_pin(int pin, uint16_t* data);
+inline void read_pin(int pin, uint16_t* data, uint32_t reg);
 
 void write_pin(int pin, uint8_t value, IMXRT_GPIO_t& GPIO_n); 
 

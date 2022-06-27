@@ -44,7 +44,7 @@ void stopConversion() {
 
 void startConversion() {
     periodicTimer::setUpPeriodicISR3(triggerConversion);
-    periodicTimer::startPeriodic3(700);
+    periodicTimer::startPeriodic3(250);
 } 
 
 
@@ -73,10 +73,9 @@ void triggerConversion() {
     gpio::write_pin(CONVST,0,IMXRT_GPIO7);
 
     //beginRead();
-    readLoop();
-    #ifndef ADC_DEBUG_CHRISTIAN
-    gpioInterrupt::setUpGpioISR(beginRead);
-    #endif //DISABLING THIS AND SIMULATING "BUSY" INSTEAD
+ 
+    gpioInterrupt::setUpGpioISR(readLoop);
+    //#endif //DISABLING THIS AND SIMULATING "BUSY" INSTEAD
 
     #ifdef SERIAL_DEBUG
     Serial.println("Set CONVST pin to high.");
@@ -101,10 +100,15 @@ void readData() {
 }
 
 void readLoop() {
-    for (int i = 0; i<8; i++) {
+    for (int i = 0; i<5; i++) {
     gpio::write_pin(_RD, 0, IMXRT_GPIO7);
     sampleData[channels_processed] = gpio::read_pins();
     gpio::write_pin(_RD, 1, IMXRT_GPIO7);
+    }
+    for (int i = 5; i<8; i++) {
+        gpio::write_pin(_RD, 0, IMXRT_GPIO7);
+        if (1) {gpio::write_pin(_RD, 0, IMXRT_GPIO7);}
+        gpio::write_pin(_RD, 1, IMXRT_GPIO7);
     }
 }
 } // adc

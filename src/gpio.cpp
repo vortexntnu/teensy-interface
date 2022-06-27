@@ -29,9 +29,9 @@ void configPin(int pin, int mode, IMXRT_GPIO_t& GPIO_n)
 }
 
 
-inline void read_pin(int pin, uint16_t* data)
+inline void read_pin(int pin, uint16_t* data, uint32_t reg)
 {
-    *data |= (((IMXRT_GPIO6.DR)&(0x1<<pin))>>(pin-core_to_sample_bit[pin])); 
+    *data |= (((reg)&(0x1<<pin))>>(pin-core_to_sample_bit[pin])); 
 }
 
 void write_pin(int pin, uint8_t value, IMXRT_GPIO_t& GPIO_n)
@@ -62,20 +62,21 @@ void test_write()
 uint16_t read_pins()
 {
     uint16_t data = 0;
+    uint32_t DR = IMXRT_GPIO7.DR;
 
-    read_pin(CORE_PIN38_BIT, &data);
-    read_pin(CORE_PIN39_BIT, &data);
-    read_pin(CORE_PIN40_BIT, &data);
-    read_pin(CORE_PIN41_BIT, &data);
+    read_pin(CORE_PIN38_BIT, &data,DR);
+    read_pin(CORE_PIN39_BIT, &data,DR);
+    read_pin(CORE_PIN40_BIT, &data,DR);
+    read_pin(CORE_PIN41_BIT, &data,DR);
     
-    read_pin(CORE_PIN14_BIT, &data);
-    read_pin(CORE_PIN15_BIT, &data);
-    read_pin(CORE_PIN16_BIT, &data);
-    read_pin(CORE_PIN17_BIT, &data);
-    read_pin(CORE_PIN18_BIT, &data);
-    read_pin(CORE_PIN19_BIT, &data);
-    read_pin(CORE_PIN20_BIT, &data);
-    read_pin(CORE_PIN21_BIT, &data);
+    read_pin(CORE_PIN14_BIT, &data,DR);
+    read_pin(CORE_PIN15_BIT, &data,DR);
+    read_pin(CORE_PIN16_BIT, &data,DR);
+    read_pin(CORE_PIN17_BIT, &data,DR);
+    read_pin(CORE_PIN18_BIT, &data,DR);
+    read_pin(CORE_PIN19_BIT, &data,DR);
+    read_pin(CORE_PIN20_BIT, &data,DR);
+    read_pin(CORE_PIN21_BIT, &data,DR);
 
     return data;
 }
