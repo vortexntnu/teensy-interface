@@ -53,10 +53,6 @@ int main() {
     while (!Serial) {}
     Serial.printf("Serial connected\r\n");
     #endif
-    
-    #ifdef ADC_DEBUG_CHRISTIAN
-    adc::setup();
-    #endif
 
     #ifdef PIN_DEBUG
     clock::setup();
@@ -88,9 +84,7 @@ int main() {
         default:
             break;
         }
-
-        adc::startConversion();
-        //gpio::write_pin(CONVST, 1, IMXRT_GPIO7);
+        
         #ifdef PIN_DEBUG
         setupgptIndicator();
         gpt::startTimer(3750); //Takes in amount of clock cycles it needs before execute

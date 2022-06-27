@@ -4,7 +4,7 @@ namespace clock {
     int clockFreq;
     void setup() {
         
-        #ifdef ADC_DEBUG_CHRISTIAN
+        #ifndef SERIAL_DEBUG
         // Setup Peripheral Clock
         CCM_CBCMR |= CCM_CBCMR_PRE_PERIPH_CLK_SEL(0); //Using PPL2 as source clock(~600MHz IN THEORY) (~536MHz IN PRACTICE)
         // derive Peripheral from Pre-Peripheral Clock
@@ -16,7 +16,7 @@ namespace clock {
         // Clock: 150 MHz -> Period: 6.667 ns (IN THEORY)
         #endif
 
-        #ifndef ADC_DEBUG_CHRISTIAN
+        #ifdef SERIAL_DEBUG
         // Setup Peripheral Clock
         CCM_CBCMR |= CCM_CBCMR_PRE_PERIPH_CLK_SEL(0); //Using PPL2 as source clock(~600MHz IN THEORY) (~536MHz IN PRACTICE)
         // derive Peripheral from Pre-Peripheral Clock

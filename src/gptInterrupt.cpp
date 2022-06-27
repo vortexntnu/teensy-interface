@@ -1,5 +1,5 @@
 #include "gptInterrupt.h"
-#ifdef ADC_DEBUG_CHRISTIAN
+#ifdef SERIAL_DEBUG
 #include "gpio.h"
 #endif
 
@@ -33,7 +33,7 @@ namespace gpt {
 
     void startTimer(int clockcycles) {
         GPT1_OCR1 = clockcycles; //Sets compare register value
-        #ifdef ADC_DEBUG_CHRISTIAN
+        #ifdef SERIAL_DEBUG
         gpio::toggle_pin(CORE_PIN32_BIT, IMXRT_GPIO7);
         #endif
         GPT1_CR |= GPT_CR_EN; //Turns on timer
