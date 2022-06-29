@@ -20,7 +20,7 @@ inline void read_pin(int pin, uint16_t* data, uint32_t reg);
 
 void write_pin(int pin, uint8_t value, IMXRT_GPIO_t& GPIO_n); 
 
-
+void toggle_pin(int pin, IMXRT_GPIO_t& GPIO_n);
 
 uint16_t read_pins();
 

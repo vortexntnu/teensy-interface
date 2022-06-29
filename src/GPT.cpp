@@ -1,4 +1,4 @@
-#include "gptInterrupt.h"
+#include "gpt.h"
 #ifdef SERIAL_DEBUG
 #include "gpio.h"
 #endif

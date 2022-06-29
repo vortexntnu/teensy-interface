@@ -1,4 +1,4 @@
-#include "pitInterrupt.h"
+#include "PIT.h"
 
 
 namespace periodicTimer {

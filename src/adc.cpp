@@ -1,8 +1,8 @@
 #include "adc.h"
 #include "clock.h"
-#include "pitInterrupt.h"
+#include "PIT.h"
 #include "gpioInterrupt.h"
-#include "gptInterrupt.h"
+#include "GPT.h"
 #include "gpio.h"
 
 namespace adc {
@@ -123,32 +123,37 @@ void transferData() {
     ChannelC0.insert(sampleData[4]);
 }
 
-void configureADC() {
+void config() {
 
     // see write access timing diagram on p.19 of ADC data sheet.
     // when _CS and _WR are low, we can write to the ADC config registers.
     // writes to the 16 most significant bits first.
+    // check p.39 for info about config register
 
     gpio::configPin(_CS, 1, IMXRT_GPIO7);
     gpio::write_pin(_CS, 0, IMXRT_GPIO7);
 
     gpio::configPin(_WR, 1, IMXRT_GPIO7);
-    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 1st write access
+    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 1st write access, needs to be low for AT LEAST 15ns
+
+    //We want BUSY/INT in interrupt mode, therefore we want the 27th bit in the ADC's config register to be high,
+    //meaning DB(27-16) = DB11 = 1 (IN THE SECOND CONFIG CYCLE).
 
     
-    int BUSY_SEL = CORE_PIN21_BIT; // set this pin to high to enable interrupt from BUSY pin on ADC.
-    //int BUSY_SEL = CORE_PIN16_BIT; // alternative
-    int BUSY_POL_BIT = 26; 
+    delayNanoseconds(5); // t_SUDI/t_HDI
 
-    gpio::configPin(BUSY_SEL, 1, IMXRT_GPIO6);
-    gpio::write_pin(BUSY_SEL, 1, IMXRT_GPIO6);
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 1st write access, needs to be high AT LEAST 10ns
 
-    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 1st write access
     delayNanoseconds(10); // t_WRH
-    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 2nd write access
-    if (1);
-    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 2nd write access
 
+    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 2nd write access
+
+    gpio::configPin(DB11, 1, IMXRT_GPIO6);
+    gpio::write_pin(DB11, 1, IMXRT_GPIO6);
+    delayNanoseconds(5); // t_SUDI/t_HDI
+
+    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 2nd write access
+    gpio::write_pin(_CS, 1, IMXRT_GPIO7);
 }
 
 

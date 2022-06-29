@@ -2,9 +2,9 @@
 #include <Arduino.h>
 
 #include "gpio.h"
-#include "pitInterrupt.h"
+#include "PIT.h"
 #include "gpioInterrupt.h"
-#include "gptInterrupt.h"
+#include "GPT.h"
 #include "clock.h"
 #include "adc.h"
 
@@ -54,13 +54,6 @@ int main() {
     Serial.printf("Serial connected\r\n");
     #endif
 
-    #ifdef PIN_DEBUG
-    clock::setup();
-    gpt::setup();
-    gpt::setUpGptISR(*gptIndicator);
-    gpio::setup();
-    #endif
-
     State state = State::IDLE;
     
     while (1)
@@ -72,7 +65,8 @@ int main() {
             break;
         }
         case CONFIG_ADC: {
-            
+            //config function
+            adc::config();
             state = State::IDLE;
             break;
         }
