@@ -7,7 +7,7 @@ namespace periodicTimer {
 
 typedef void (*void_function_ptr)(void);
 
-void ISR();
+void ISR();     //// should not be called from outside!!
 void setUpPeriodicISR3(void_function_ptr function);
 void setUpPeriodicISR2(void_function_ptr function);
 void setup();

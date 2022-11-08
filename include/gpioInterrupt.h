@@ -16,7 +16,7 @@ namespace gpioInterrupt {
 
     void setup();
 
-    void ISR(void);
+    void ISR(void);     //// should not be called from outside!!
 
     void setUpGpioISR(void_function_ptr function);
 

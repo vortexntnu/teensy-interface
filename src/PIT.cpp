@@ -17,7 +17,7 @@ void dumpPeriodicRegisters() {
 }
 #endif
 
-
+//// will be changed later, this keeps it generic
 static void dummyISR(void) {}
 void (*isr_periodic_func3)(void) = dummyISR; 
 void (*isr_periodic_func2)(void) = dummyISR;
@@ -25,34 +25,38 @@ void (*isr_periodic_func2)(void) = dummyISR;
 void ISR() {
     NVIC_DISABLE_IRQ(IRQ_PIT);
 
-    if (PIT_TFLG3) {
+    if (PIT_TFLG3) {        //// what does that represent?
         PIT_TFLG3 = 0x1;
         (*isr_periodic_func3)(); 
     }
     
-    if (PIT_TFLG2) {
+    if (PIT_TFLG2) {            //// what does that represent?
         (*isr_periodic_func2)();
     }
 
     NVIC_ENABLE_IRQ(IRQ_PIT);
 }
 
+/// @brief function called when IRQ_PIT interrupt happens
+/// @param function function of top level file that will be called on IRQ_PIT interrupt, if (PIT_TFLG3)
 void setUpPeriodicISR3(void_function_ptr function) {
     isr_periodic_func3 = function; 
 }
 
+/// @brief function called when IRQ_PIT interrupt happens
+/// @param function function of top level file that will be called on IRQ_PIT interrupt, if (PIT_TFLG2)
 void setUpPeriodicISR2(void_function_ptr function) {
     isr_periodic_func2 = function; 
 }
 
 void setup() {
-    PIT_MCR &= ~PIT_MCR_MDIS;
+    PIT_MCR &= ~PIT_MCR_MDIS;       //// check datasheet
 
     PIT_TCTRL0 = 0x0;
 
     
     attachInterruptVector(IRQ_PIT, ISR);
-    NVIC_ENABLE_IRQ(IRQ_PIT);
+    NVIC_ENABLE_IRQ(IRQ_PIT);       //// is activating the interrupt management for IRQ_PIT
     #ifdef SERIAL_DEBUG
     dumpPeriodicRegisters();
     #endif

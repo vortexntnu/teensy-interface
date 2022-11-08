@@ -31,24 +31,24 @@ void configPin(int pin, int mode, IMXRT_GPIO_t& GPIO_n)
     }
 }
 
-
-inline void read_pin(int pin, uint16_t* data, uint32_t reg)
+//// inline: kinda like a macro, replace the fonction call with directly the code. saves time to call, because the call takes longer than the actual code inside
+inline void read_pin(int pin, uint16_t* data, uint32_t reg)     //// does this work, not same syntax as writing? reg is not a pointer but a value
 {
-    *data |= (((reg)&(0x1<<pin))>>(pin-core_to_sample_bit[pin])); 
+    *data |= (((reg)&(0x1<<pin))>>(pin-core_to_sample_bit[pin]));       //// moves the pin value to right position in data, see adc.h, this is hardcoded to match the acoustics board
 }
 
 void write_pin(int pin, uint8_t value, IMXRT_GPIO_t& GPIO_n)
 {
     if (value) {
-        GPIO_n.DR_SET |= (1 << pin); 
+        GPIO_n.DR_SET |= (1 << pin);    //// the MCU has registers to set or clear registers
     }
     else {
-        GPIO_n.DR_CLEAR |= (1 << pin); 
+        GPIO_n.DR_CLEAR |= (1 << pin);  //// putting a 1 in the clear register will clear the bit in the GPIO_n register
     }
 }
 
 void toggle_pin(int pin, IMXRT_GPIO_t& GPIO_n) {
-    GPIO_n.DR_TOGGLE |= (1 << pin);
+    GPIO_n.DR_TOGGLE |= (1 << pin);     //// same as above, there are registers (.DR_TOGGLE) that will toggle the bits where a 1 is written
 }
 
 void test_write()
@@ -63,21 +63,21 @@ void test_write()
 uint16_t read_pins()
 {
     uint16_t data = 0;
-    uint32_t DR = IMXRT_GPIO7.DR;
+    uint32_t DR = IMXRT_GPIO7.DR;   //// hopefully the adress is a uint32_t
 
-    read_pin(CORE_PIN38_BIT, &data,DR);
-    read_pin(CORE_PIN39_BIT, &data,DR);
-    read_pin(CORE_PIN40_BIT, &data,DR);
-    read_pin(CORE_PIN41_BIT, &data,DR);
+    read_pin(CORE_PIN38_BIT, &data, DR);       //// reading all the pins defined as DBX in adc.h
+    read_pin(CORE_PIN39_BIT, &data, DR);
+    read_pin(CORE_PIN40_BIT, &data, DR);
+    read_pin(CORE_PIN41_BIT, &data, DR);
     
-    read_pin(CORE_PIN14_BIT, &data,DR);
-    read_pin(CORE_PIN15_BIT, &data,DR);
-    read_pin(CORE_PIN16_BIT, &data,DR);
-    read_pin(CORE_PIN17_BIT, &data,DR);
-    read_pin(CORE_PIN18_BIT, &data,DR);
-    read_pin(CORE_PIN19_BIT, &data,DR);
-    read_pin(CORE_PIN20_BIT, &data,DR);
-    read_pin(CORE_PIN21_BIT, &data,DR);
+    read_pin(CORE_PIN14_BIT, &data, DR);
+    read_pin(CORE_PIN15_BIT, &data, DR);
+    read_pin(CORE_PIN16_BIT, &data, DR);
+    read_pin(CORE_PIN18_BIT, &data, DR);
+    read_pin(CORE_PIN17_BIT, &data, DR);
+    read_pin(CORE_PIN19_BIT, &data, DR);
+    read_pin(CORE_PIN20_BIT, &data, DR);
+    read_pin(CORE_PIN21_BIT, &data, DR);
 
     return data;
 }

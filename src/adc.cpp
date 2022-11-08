@@ -12,7 +12,7 @@ static int channels_processed;
 //set up sampling
 void setup() {
     gpio::setup();
-    clock::setup();
+    clock::setup();     //// the clockfrequency needs to be defined somewhere
     gpt::setup(); 
     periodicTimer::setup();
     //gpioInterrupt::setup(); //NEEDS TO BE FIXED
@@ -24,7 +24,7 @@ void setup() {
 
     gpio::configPin(CONVST, 0, IMXRT_GPIO7);
     gpio::write_pin(_CS, 0, IMXRT_GPIO7);
-    gpio::write_pin(_RD, 1, IMXRT_GPIO7); 
+    gpio::write_pin(_RD, 1, IMXRT_GPIO7);
     gpio::write_pin(_WR, 1, IMXRT_GPIO7);
 
     #ifdef SERIAL_DEBUG

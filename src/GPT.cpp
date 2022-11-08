@@ -1,4 +1,4 @@
-#include "gpt.h"
+#include "GPT.h"
 #ifdef SERIAL_DEBUG
 #include "gpio.h"
 #endif
@@ -27,8 +27,8 @@ namespace gpt {
         
         GPT1_IR |= GPT_IR_OF1IE;
 
-        attachInterruptVector(IRQ_GPT1, ISR);
-        NVIC_ENABLE_IRQ(IRQ_GPT1);
+        attachInterruptVector(IRQ_GPT1, ISR);       //// ISR() is the interupt routine specific to this namespace (--> gpd::ISR())
+        NVIC_ENABLE_IRQ(IRQ_GPT1);                  //// activating interupt management for this interrupt
     }
 
     void startTimer(int clockcycles) {
@@ -54,6 +54,6 @@ namespace gpt {
     }
 
     void setUpGptISR(void_function_ptr function) {
-        isr_timer_func = function;
+        isr_timer_func = function;          //// sets function that will be called when timer finished
     }
 };

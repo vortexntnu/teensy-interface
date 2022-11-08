@@ -16,7 +16,7 @@ namespace eth {
     char recievedString[UDP_TX_PACKET_MAX_SIZE];
 
     status setup() { 
-        Ethernet.begin(macAddressTeensy,ipAddressTeensy);
+        Ethernet.begin(macAddressTeensy,ipAddressTeensy);       //// native ethernet library is importet in .h
         if (Udp.begin(localPort)) {
             return SUCCESS;
         }
@@ -53,7 +53,7 @@ namespace eth {
     char* read() {
         if (Udp.parsePacket() != 0) {                           //if part to confirm recieved UDP package
             Udp.read(recievedString, UDP_TX_PACKET_MAX_SIZE);
-            return recievedString;
+            return recievedString;      //// global variable (pointer)
         }
         else {
             return nullptr;

@@ -2,6 +2,7 @@
 #include "Arduino.h"
 #include "clock.h"
 
+/// @brief GENERAL PURPOSE TIMER
 namespace gpt {
     extern int waiting;
 
@@ -9,6 +10,6 @@ namespace gpt {
 
     void setup();
     void startTimer(int clockcycles);
-    void ISR(void);
+    void ISR(void);         //// should not be called from outside!!
     void setUpGptISR(void_function_ptr function);
 };

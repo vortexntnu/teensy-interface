@@ -46,7 +46,7 @@ namespace adc
     static uint16_t ChannelB0Data;
     static uint16_t ChannelB1Data;
     static uint16_t ChannelC0Data; */
-    static RingBuffer ChannelA0;
+    static RingBuffer ChannelA0;        //// probably to store the data read
     static RingBuffer ChannelA1;
     static RingBuffer ChannelB0;
     static RingBuffer ChannelB1;

@@ -55,6 +55,8 @@ int main() {
     #endif
 
     State state = State::IDLE;
+
+    //// Why no adc::setup() call?
     
     while (1)
     {   

@@ -2,6 +2,14 @@
 #include <NativeEthernetUdp.h>
 #include <string.h>
 
+/*
+So far implemented, no clue if tested:
+
+
+
+*/
+
+
 namespace eth {
 
     enum status {
