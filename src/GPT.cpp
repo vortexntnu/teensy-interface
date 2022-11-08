@@ -31,6 +31,7 @@ namespace gpt {
         NVIC_ENABLE_IRQ(IRQ_GPT1);                  //// activating interupt management for this interrupt
     }
 
+//// another timer, whats the difference to the ones in PIT: not repeating??
     void startTimer(int clockcycles) {
         GPT1_OCR1 = clockcycles; //Sets compare register value
         #ifdef SERIAL_DEBUG

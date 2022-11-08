@@ -8,6 +8,7 @@
 #include "clock.h"
 #include "adc.h"
 
+#define SERIAL_DEBUG
 
 // This can be any wanted character array / string
 

@@ -53,7 +53,7 @@ namespace adc
     static RingBuffer ChannelB2;
     static RingBuffer ChannelC0;
 
-    static uint16_t sampleData[N_CHANNELS];
+    static uint16_t sampleData[N_CHANNELS];     //// array where the measurements will be store before put into ringbuffer
 
 
     void setup(); // setup the ADC
@@ -67,7 +67,7 @@ namespace adc
     void readData();
     void beginRead();
     void stopRead();
-    void readData();
+    //// void readData();
     void busyOVER();
     void readLoop();
 

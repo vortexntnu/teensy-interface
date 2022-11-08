@@ -62,12 +62,15 @@ void setup() {
     #endif
 }
 
-void startPeriodic3(int clockcycles) {
-    #ifdef SERIAL_DEBUG
+//// usefull info from datasheet: MCR[FRZ] can freeze the timers to debug. Datasheet page 2975
+//// these timers run until stopped
+
+void startPeriodic3(int clockcycles) {      //// the register can take a clockcycles uint32_t value
+#ifdef SERIAL_DEBUG
     Serial.println(">>> timer::startPeriodic()");
 #endif
     PIT_TCTRL3 |= PIT_TCTRL_TIE;
-    PIT_LDVAL3 = clockcycles; //counting period
+    PIT_LDVAL3 = clockcycles; //counting period 
     PIT_TCTRL3 |= PIT_TCTRL_TEN; // Enable Timer
 #ifdef SERIAL_DEBUG
     Serial.println("<<< timer::startPeriodic()");

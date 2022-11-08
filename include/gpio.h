@@ -11,6 +11,7 @@ const uint8_t core_to_sample_bit[32] = {
     30,31
 };
 
+/// @brief configures the parallel bus pins to adc as outputs. why??
 void setup();
 
 // set pin to input or output mode. 1->output. 0->input. 

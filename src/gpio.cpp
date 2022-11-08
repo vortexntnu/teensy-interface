@@ -8,11 +8,11 @@ void setup()
 #ifdef SERIAL_DEBUG
     Serial.printf("Setting up GPIO registers\n");
 #endif
-    IMXRT_GPIO6.GDIR = 0xFFFFFFFF;
+    IMXRT_GPIO6.GDIR = 0xFFFFFFFF;      //// sets as output
     IMXRT_GPIO7.GDIR = 0xFFFFFFFF;
-    IMXRT_GPIO6.DR_CLEAR = 0xFFFFFFFF;
+    IMXRT_GPIO6.DR_CLEAR = 0xFFFFFFFF;  //// clears the pins(outputting 0)
     IMXRT_GPIO7.DR_CLEAR = 0xFFFFFFFF;
-    IMXRT_GPIO6.GDIR = 0x0;
+    IMXRT_GPIO6.GDIR = 0x0;             //// should to the same as the 2 lines above???
     IMXRT_GPIO7.GDIR = 0x0;
 #ifdef SERIAL_DEBUG
     dump_GPIO_registers(); 
