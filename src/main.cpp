@@ -34,12 +34,12 @@ void gptIndicator() {
 #endif
 
 #ifdef SERIAL_DEBUG
-static void blink_on_interrupt(void) {
+static void blink_on_interrupt(void) {      //// function to call on interupts, works ony once
     gpio::write_pin(CORE_PIN13_BIT, 1, IMXRT_GPIO6);
     digitalWrite(LED_BUILTIN, HIGH);
 }
 
-void test_interrupts()
+void test_interrupts()      //// function that inits pins to be called on interrupts I guess
 {
     gpio::configPin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
     gpio::write_pin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
@@ -58,7 +58,8 @@ int main() {
     State state = State::IDLE;
 
     //// Why no adc::setup() call?
-    
+    //// this state machine was never testet and also it was not exactly decided how to do it. This is where team 2022 stopped about.
+
     while (1)
     {   
         switch (state)

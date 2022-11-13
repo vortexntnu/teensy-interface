@@ -2,6 +2,11 @@
 #include "Arduino.h"
 #include "clock.h"
 
+//// this was created to be used for delays in the nanoseconds range, but did't work reliably. Probably because the time of execution of the different lines where not 
+//// compensated. ---->
+
+//// USE the inbuilt function delaynanoseconds INSTEAD !!!!!!!!!!!!!!!!!!!!!!!!!! -----------------------------
+
 /// @brief GENERAL PURPOSE TIMER
 namespace gpt {
     extern int waiting;

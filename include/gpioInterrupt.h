@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include "stdlib.h"
 
+//// Configuring and handling interrupts on pins 28, 30 and the one from BUSY of the adc
+
 namespace gpioInterrupt {
 
     #define BUSY   CORE_PIN31_BIT //GPIO 9
@@ -20,7 +22,7 @@ namespace gpioInterrupt {
 
     void setUpGpioISR(void_function_ptr function);
 
-    void configPin(int pin, int mode);
+    void configPin(int pin, int mode);      //// not implemented
 
     void dump_GPIO_interrupt_registers();
 };

@@ -28,7 +28,7 @@ static int channels_processed;
 //set up sampling
 void setup() {
     gpio::setup();      //// set the data bus pins as output and cleares them
-    clock::setup();     //// the clockfrequency needs to be defined somewhere
+    clock::setup();     //// the clockfrequency needs to be defined somewhere, does it need to be called also if adc is not init()
     gpt::setup(); 
     periodicTimer::setup();
     //gpioInterrupt::setup(); //NEEDS TO BE FIXED
@@ -65,11 +65,11 @@ void startConversion() {
     periodicTimer::startPeriodic3(250);                 //// will it call triggerConversion every 250 clockcycles???
 } 
 
-//// never used
+//// never used, is an alternative to the readloop
 void beginRead() {
     channels_processed = 0;
     periodicTimer::setUpPeriodicISR2(readData);     //// why??? can't just readData?
-    periodicTimer::startPeriodic2(1);       //// every 1 clockcycle?? that will be way to often
+    periodicTimer::startPeriodic2(1);       //// the 1 clockcycle was only to check something, has nothing to do with the real code to read adc
     
     
     //gpt::setUpGptISR(readData);
@@ -77,7 +77,7 @@ void beginRead() {
     //gpt::startTimer(132000000); // fix magic number.
 }
 
-//// never used
+//// never used, will be called if begin read is called.
 void stopRead() {
     periodicTimer::stopPeriodic2();
 
@@ -98,6 +98,7 @@ void triggerConversion() {
  
     gpioInterrupt::setUpGpioISR(readLoop);      //// why doing it every time and not in an init() function
     //// problem?: this only sets the function that will be called, but doesn't start or stop the timer.
+    //// 
 
     //#endif //DISABLING THIS AND SIMULATING "BUSY" INSTEAD
 
@@ -111,20 +112,20 @@ void triggerConversion() {
 //// called from timer 2 when called beginRead before
 void readData() {
     gpio::write_pin(_RD, 0, IMXRT_GPIO7); // go to next channel;
-    sampleData[channels_processed] = gpio::read_pins();
+    sampleData[channels_processed] = gpio::read_pins();     //// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
     gpio::write_pin(_RD, 1, IMXRT_GPIO7);
     channels_processed++;
     //will automatically stop 
     if (channels_processed==N_CHANNELS) {
         stopRead();
     } /* else {
-        // probably need to wait a bit before doing next read.          //// definitly, because timer will trigger this function every 1 clockcycle
+        // probably need to wait a bit before doing next read.          //// depends on frequency of timer that calls this function
         gpio::write_pin(_RD, 0, IMXRT_GPIO7);
         gpt::startTimer(132000000);
     } */
 }
 
-//// is this doing the same than readData without interrupts??
+//// is trying to to the same than readData but without interrupt, back top back. Written by two different persons
 void readLoop() {
     for (int i = 0; i<5; i++) {
         gpio::write_pin(_RD, 0, IMXRT_GPIO7);       //// tells the adc to put data on the line
@@ -133,6 +134,7 @@ void readLoop() {
     }
     for (int i = 5; i<8; i++) {     //// this would be channel 6 to 8, that we don't need
         gpio::write_pin(_RD, 0, IMXRT_GPIO7);
+        //// could probably be replaced with a real delay, it happened to be exactly the right delay to call this function
         if (1) {gpio::write_pin(_RD, 0, IMXRT_GPIO7);}      //// not reading it, just faking it
         gpio::write_pin(_RD, 1, IMXRT_GPIO7);
     }
@@ -147,7 +149,7 @@ void transferData() {
     ChannelC0.insert(sampleData[4]);
 }
 
-/// @brief configures the ADC --> need to check if configured correctly
+/// @brief configures the ADC --> is probably not correct, depends on what is needed
 void config() {
 
     // see write access timing diagram on p.19 of ADC data sheet.

@@ -11,6 +11,9 @@ void dumpClockRegisters() {
 }
 #endif
 
+//// this was to slow down the systemclock to be able to analyse the data with the oscilloscope at the office
+//// might need to be checked again
+
 void setup() {
     
     #ifndef OSCILLOSCOPE_DEBUG
