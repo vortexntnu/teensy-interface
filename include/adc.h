@@ -9,7 +9,7 @@ namespace adc
     const int N_HYDROPHONES =   5;
     const int SAMPLE_SIZE =     12; //bits in one sample
 
-    // Control signals
+    // Pin definition of Control signals
     const int REFEN =   CORE_PIN1_BIT;
     const int _WR =     CORE_PIN1_BIT;
     const int STBY =    CORE_PIN2_BIT;
@@ -46,24 +46,25 @@ namespace adc
     static uint16_t ChannelB0Data;
     static uint16_t ChannelB1Data;
     static uint16_t ChannelC0Data; */
-    static RingBuffer ChannelA0;        //// probably to store the data read
+
+    // Ringbuffers to store data, one for each channel (not yet implemented)
+    static RingBuffer ChannelA0;
     static RingBuffer ChannelA1;
     static RingBuffer ChannelB0;
     static RingBuffer ChannelB1;
-    static RingBuffer ChannelB2;
+    static RingBuffer ChannelB2;    //// not planned on using
     static RingBuffer ChannelC0;
 
-    static uint16_t sampleData[N_CHANNELS];     //// array where the measurements will be store before put into ringbuffer
+    static uint16_t sampleData[N_CHANNELS];     // array where the measurements will be stored before put into ringbuffer
 
 
     void setup(); // setup the ADC
     void config(); // configure ADC so it's ready to send data.
 
-    //static void triggerConversion(void); // tell ADC to start converting.
     void startConversion(); // setup periodic timer interrupts. 
     void stopConversion();  // stop periodic timer interrupts
 
-    void triggerConversion();
+    void triggerConversion();   // tell ADC to start converting.
     void readData();
     void beginRead();
     void stopRead();

@@ -8,6 +8,8 @@
 #include "clock.h"
 #include "adc.h"
 
+#include "testing.h"        // all the test function should be here
+
 #define SERIAL_DEBUG
 
 // This can be any wanted character array / string
@@ -24,6 +26,10 @@ enum State {
     IDLE, CONFIG_ADC, SAMPLE
 };
  
+void test_timers();
+void print_dummy_1();
+void print_dummy_2();
+
 #ifdef PIN_DEBUG
 void setupgptIndicator() {
     gpio::configPin(CORE_PIN32_BIT, 1, IMXRT_GPIO7);
@@ -49,46 +55,56 @@ void test_interrupts()      //// function that inits pins to be called on interr
 #endif
 
 int main() {
+    // clock of teensy is 600MHz after normal boot
     #ifdef SERIAL_DEBUG
     Serial.begin(9600);
     while (!Serial) {}
     Serial.printf("Serial connected\r\n");
     #endif
 
-    State state = State::IDLE;
+    Serial.print("F_CPU actual : ");
+    Serial.println(F_CPU_ACTUAL);
+    adc::setup();
+    Serial.print("F_CPU actual : ");
+    Serial.println(F_CPU_ACTUAL);
 
-    //// Why no adc::setup() call?
-    //// this state machine was never testet and also it was not exactly decided how to do it. This is where team 2022 stopped about.
+    testing_timers_basic(); //in test file
+    
 
-    while (1)
-    {   
-        switch (state)
-        {
-        case IDLE: {
+    // State state = State::IDLE;
 
-            break;
-        }
-        case CONFIG_ADC: {
-            //config function
-            adc::config();
-            state = State::IDLE;
-            break;
-        }
-        case SAMPLE: {
-            adc::startConversion();
+    // //// Why no adc::setup() call?
+    // //// this state machine was never testet and also it was not exactly decided how to do it. This is where team 2022 stopped about.
 
-            break;
-        }
-        default:
-            break;
-        }
+    // while (1)
+    // {   
+    //     switch (state)
+    //     {
+    //     case IDLE: {
+
+    //         break;
+    //     }
+    //     case CONFIG_ADC: {
+    //         //config function
+    //         adc::config();
+    //         state = State::IDLE;
+    //         break;
+    //     }
+    //     case SAMPLE: {
+    //         adc::startConversion();
+
+    //         break;
+    //     }
+    //     default:
+    //         break;
+    //     }
         
-        #ifdef PIN_DEBUG
-        setupgptIndicator();
-        gpt::startTimer(3750); //Takes in amount of clock cycles it needs before execute
-        Serial.printf("2sec delay\n");
-        delay(2000);
-        #endif
-        delay(1000);
-    }
+    //     #ifdef PIN_DEBUG
+    //     setupgptIndicator();
+    //     gpt::startTimer(3750); //Takes in amount of clock cycles it needs before execute
+    //     Serial.printf("2sec delay\n");
+    //     delay(2000);
+    //     #endif
+    //     delay(1000);
+    // }
 }
