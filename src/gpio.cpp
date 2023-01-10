@@ -74,7 +74,7 @@ namespace gpio
         }
         // or
         /*
-            GPIO_n.DR |= (1 << pin);
+            GPIO_n.DR |= ((value & 0b1) << pin);
         */
     }
 
