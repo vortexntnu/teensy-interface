@@ -1,21 +1,29 @@
-#pragma once
-
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
 #include <string.h>
 
-namespace eth {
+/*
+So far implemented, no clue if tested:
 
-    enum status {
-        SUCCESS, FAILURE
+
+
+*/
+
+namespace eth
+{
+
+    enum status
+    {
+        SUCCESS,
+        FAILURE
     };
 
     status setup();
 
-    //status check();
+    // status check();
 
-    status write(char* message);
+    status write(char *message);
     status write(uint16_t data);
 
-    char* read();
+    char *read();
 };
