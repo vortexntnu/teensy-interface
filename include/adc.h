@@ -18,35 +18,36 @@ namespace adc
         Same with GPIO2 and GPIO7 and so on.
         *see chapter about IO, chapter 10, 11 and espacially 12 from datasheet
     */
-    const int REFEN = CORE_PIN1_BIT;
-    const int _WR = CORE_PIN1_BIT; // same pin as REFEN, depends if PAR or SER
-    const int STBY = CORE_PIN2_BIT;
-    const int RESET = CORE_PIN3_BIT;
-    const int _RD = CORE_PIN4_BIT;
-    const int _CS = CORE_PIN11_BIT;
-    const int PARSER = CORE_PIN12_BIT;
-    const int DB0 = CORE_PIN25_BIT;
-    const int DB1 = CORE_PIN24_BIT;
-    const int DB2 = CORE_PIN38_BIT;
-    const int DB3 = CORE_PIN39_BIT;
-    const int DB4 = CORE_PIN40_BIT;
-    const int DB5 = CORE_PIN41_BIT;
-    const int DB6 = CORE_PIN14_BIT;
-    const int DB7 = CORE_PIN15_BIT;
-    const int DB8 = CORE_PIN16_BIT;
-    const int DB9 = CORE_PIN17_BIT;
-    const int DB10 = CORE_PIN18_BIT;
-    const int DB11 = CORE_PIN19_BIT;
-    const int DB12 = CORE_PIN20_BIT;
-    const int DB13 = CORE_PIN21_BIT;
-    const int DB14 = CORE_PIN22_BIT;
-    const int DB15 = CORE_PIN23_BIT;
-    const int CONVST = CORE_PIN33_BIT;
-    const int ASLEEP = CORE_PIN34_BIT;
-    const int BUSYINT = CORE_PIN35_BIT;
-    const int RANGE = CORE_PIN36_BIT;
-    const int XCLK = CORE_PIN36_BIT; // same pin as RANGE, depending if HW or SW
-    const int HWSW = CORE_PIN37_BIT;
+    // GPIO port+bit is commented
+    const int REFEN = CORE_PIN1_BIT;    // GPIO 1.2
+    const int _WR = CORE_PIN1_BIT;      // same pin as REFEN, depends if PAR or SER
+    const int STBY = CORE_PIN2_BIT;     // GPIO 4.4
+    const int RESET = CORE_PIN3_BIT;    // GPIO 4.5
+    const int _RD = CORE_PIN4_BIT;      // GPIO 4.6
+    const int _CS = CORE_PIN11_BIT;     // GPIO 2.2
+    const int PARSER = CORE_PIN12_BIT;  // GPIO 2.1
+    const int DB0 = CORE_PIN25_BIT;     // GPIO 1.13
+    const int DB1 = CORE_PIN24_BIT;     // GPIO 1.12
+    const int DB2 = CORE_PIN38_BIT;     // GPIO 1.28
+    const int DB3 = CORE_PIN39_BIT;     // GPIO 1.29
+    const int DB4 = CORE_PIN40_BIT;     // GPIO 1.20
+    const int DB5 = CORE_PIN41_BIT;     // GPIO 1.21
+    const int DB6 = CORE_PIN14_BIT;     // GPIO 1.18
+    const int DB7 = CORE_PIN15_BIT;     // GPIO 1.19
+    const int DB8 = CORE_PIN16_BIT;     // GPIO 1.23
+    const int DB9 = CORE_PIN17_BIT;     // GPIO 1.22
+    const int DB10 = CORE_PIN18_BIT;    // GPIO 1.17
+    const int DB11 = CORE_PIN19_BIT;    // GPIO 1.16
+    const int DB12 = CORE_PIN20_BIT;    // GPIO 1.26
+    const int DB13 = CORE_PIN21_BIT;    // GPIO 1.27
+    const int DB14 = CORE_PIN22_BIT;    // GPIO 1.24
+    const int DB15 = CORE_PIN23_BIT;    // GPIO 1.25
+    const int CONVST = CORE_PIN33_BIT;  // GPIO 4.07
+    const int ASLEEP = CORE_PIN34_BIT;  // GPIO 2.29
+    const int BUSYINT = CORE_PIN35_BIT; // GPIO 2.28
+    const int RANGE = CORE_PIN36_BIT;   // GPIO 2.18
+    const int XCLK = CORE_PIN36_BIT;    // same pin as RANGE, depending if HW or SW
+    const int HWSW = CORE_PIN37_BIT;    // GPIO 2.19
 
     // Interrupt Signals.
     /* static uint16_t ChannelA0Data;

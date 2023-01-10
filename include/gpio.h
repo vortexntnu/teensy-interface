@@ -4,6 +4,7 @@
 namespace gpio
 {
     /// used to shift reading of 1 GPIO to the right position in read_pin()
+    // info: some are the same, because the pins are on different GPIO ports
     const uint8_t core_to_sample_bit[32] = {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
         9, 8, 4, 5, 2, 3, 7, 6, 0, 0, 10, 11, 0, 1,
@@ -20,6 +21,7 @@ namespace gpio
     /// reads the pin of register reg, and modifies the corresponding bit in data
     /// (using const uint8_t core_to_sample_bit[32])
     inline void read_pin(int pin, uint16_t *data, uint32_t reg);
+    uint8_t read_pin(int pin, IMXRT_GPIO_t &GPIO_n);
 
     void write_pin(int pin, uint8_t value, IMXRT_GPIO_t &GPIO_n);
 

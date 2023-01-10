@@ -56,6 +56,11 @@ namespace gpio
                                                                               /// match the acoustics board
     }
 
+    uint8_t read_pin(int pin, IMXRT_GPIO_t &GPIO_n)
+    {
+        return (((GPIO_n.PSR) & (0x1 << pin)) >> (pin - core_to_sample_bit[pin]));
+    }
+
     void write_pin(int pin, uint8_t value, IMXRT_GPIO_t &GPIO_n)
     {
         if (value)
@@ -67,6 +72,10 @@ namespace gpio
             GPIO_n.DR_CLEAR |= (1 << pin); /// putting a 1 in the clear register will
                                            /// clear the bit in the GPIO_n register
         }
+        // or
+        /*
+            GPIO_n.DR |= (1 << pin);
+        */
     }
 
     void toggle_pin(int pin, IMXRT_GPIO_t &GPIO_n)
@@ -87,13 +96,14 @@ namespace gpio
     }
 
     //! needs to be tested by pulling pins to VCC or GND and see if value match
+    // only 12 pins, not the 16 for the bus
     uint16_t read_pins()
     {
         uint16_t data = 0;
         uint32_t DR = IMXRT_GPIO7.DR; /// hopefully the adress is a uint32_t
 
-        read_pin(CORE_PIN38_BIT, &data,
-                 DR); /// reading all the pins defined as DBX in adc.h
+        /// reading all the pins defined as DBX in adc.h
+        read_pin(CORE_PIN38_BIT, &data, DR);
         read_pin(CORE_PIN39_BIT, &data, DR);
         read_pin(CORE_PIN40_BIT, &data, DR);
         read_pin(CORE_PIN41_BIT, &data, DR);
