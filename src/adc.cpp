@@ -21,177 +21,224 @@ First call adc::setup(), to set up all the timers and GPIOS needed for the commu
 
 */
 
-namespace adc {
+/*
+    How it should work: from ADC datasheet
+    init():
+        -configuring the pins: maybe need to reconfigure from write to read --> test
+            -CS(13), RD(12), WR(11), PAR/SER(8), CONVST as output, BUSY/INT(35) as input
+            -floating pins in software: XCLK/RANGE, REFEN
+        -settings pins to enable software and parallel mode
+        -finding the right register value
+        -write value to register
+    config_adc():
+        -PAR-pins as output (16 pins)
+        -CS first and then WR low (for at least 15ns)
+        -to avoid any timing problem, output register value before pulling low
+         data (16 MSB) must be on the bus at least 5ns to be read correctly
+        -WR high, CS stays low. High pulse for at least 10ns
+        -writing second part (16 LSB) to the pins
+        -WR to low for at least 15ns
+        -First WR high, then CS, data must be valid for 5ns more!
+        IF bit 30, the register values can be read (maybe on parallel interface) on SDO_A
+    start_convertion():
+        -pull CONVST high to start conversion (all channels at the same time)
+        -CONVST can stay high or pulled low after, best is when BUSY/INT happens
+        -if using BUSY: max time to BUSY high: 25ns. Then stays high for max 1,7 micro sec
+            depending on ADC model (12-14-16 bit), don't care about time, using BUSY pin
+        -wait for at least 86ns (model dependant, we have 12-bit resolution)
+        -CS low, then RD low(no delay needed between)
+        -CS can stay low
+        Repeat:
+        -RD has to be low for at least 20ns
+        -value on PAR-bus is ready after max 15ns after RD low
+        -RD must be high for at least 2ns for next data. data is valid for 5ns after rising edge
+        -pull read down again if other data expected, go to Repeat.
+        End of transmission:
+        -RD to high again, same timing than during transmission
+        -CS to high, can be done straight after RD to high
+        -BUS goes to tree-state after max 10ns.
+        -On ADS8528: 0 ns between CS rising edge to next CONVST rising edge
+        ! min time between 2 CONVST rising edges: 240ns
 
-static int channels_processed;
+*/
 
-// set up sampling
-void setup()
+namespace adc
 {
-    gpio::setup(); /// set the data bus pins as output and cleares them
-    clock::setup(); /// the clockfrequency needs to be defined somewhere, does it need to be called also if adc is not init()
-    gpt::setup();
-    periodicTimer::setup();
-    // gpioInterrupt::setup(); //NEEDS TO BE FIXED
 
-    gpio::configPin(CONVST, 1, IMXRT_GPIO7);
-    gpio::configPin(_CS, 1, IMXRT_GPIO7);
-    gpio::configPin(_RD, 1, IMXRT_GPIO7);
-    gpio::configPin(_WR, 1, IMXRT_GPIO7);
+    static int channels_processed;
 
-    gpio::configPin(CONVST, 0, IMXRT_GPIO7); /// why do the same again, but CONVST and _CS as input now?
-    gpio::write_pin(_CS, 0, IMXRT_GPIO7);
-    gpio::write_pin(_RD, 1, IMXRT_GPIO7);
-    gpio::write_pin(_WR, 1, IMXRT_GPIO7);
+    // set up sampling
+    void setup()
+    {
+        gpio::setup();  /// set the data bus pins as output and cleares them
+        clock::setup(); /// the clockfrequency needs to be defined somewhere, does it need to be called also if adc is not init()
+        gpt::setup();
+        periodicTimer::setup();
+        // gpioInterrupt::setup(); //NEEDS TO BE FIXED
+
+        gpio::configPin(CONVST, 1, IMXRT_GPIO7);
+        gpio::configPin(_CS, 1, IMXRT_GPIO7);
+        gpio::configPin(_RD, 1, IMXRT_GPIO7);
+        gpio::configPin(_WR, 1, IMXRT_GPIO7);
+
+        // gpio::configPin(CONVST, 0, IMXRT_GPIO7); /// why do the same again, but CONVST and _CS as input now?
+        // gpio::write_pin(_CS, 0, IMXRT_GPIO7);
+        // gpio::write_pin(_RD, 1, IMXRT_GPIO7);
+        // gpio::write_pin(_WR, 1, IMXRT_GPIO7);
 
 #ifdef SERIAL_DEBUG
-    Serial.printf("_CS: %d\n", (((IMXRT_GPIO7.DR) & (0x1 << _CS)) >> _CS));
-    Serial.printf("_RD: %u\n", (((IMXRT_GPIO7.DR) & (0x1 << _RD)) >> _RD));
+        Serial.printf("_CS: %d\n", (((IMXRT_GPIO7.DR) & (0x1 << _CS)) >> _CS));
+        Serial.printf("_RD: %u\n", (((IMXRT_GPIO7.DR) & (0x1 << _RD)) >> _RD));
 #endif
-}
+    }
 
-/// never called
-void stopConversion()
-{
-    gpio::write_pin(CONVST, 0, IMXRT_GPIO7);
-    periodicTimer::stopPeriodic3();
+    ///* never called
+    void stopConversion()
+    {
+        gpio::write_pin(CONVST, 0, IMXRT_GPIO7);
+        periodicTimer::stopPeriodic3();
 #ifdef SERIAL_DEBUG
-    Serial.println("Set CONVST pin to low.");
-    Serial.printf("%d\n", ((IMXRT_GPIO7.DR) & (0x1 << CONVST)) >> CONVST);
+        Serial.println("Set CONVST pin to low.");
+        Serial.printf("%d\n", ((IMXRT_GPIO7.DR) & (0x1 << CONVST)) >> CONVST);
 #endif
-}
+    }
 
-void startConversion()
-{
-    periodicTimer::setUpPeriodicISR3(triggerConversion); /// this is the only time setUpPeriodicISR3 gets called
-    periodicTimer::startPeriodic3(250); /// will it call triggerConversion every 250 clockcycles???
-}
+    void startConversion()
+    {
+        periodicTimer::setUpPeriodicISR3(triggerConversion); /// this is the only time setUpPeriodicISR3 gets called
+        periodicTimer::startPeriodic3(250);                  /// will it call triggerConversion every 250 clockcycles???
+    }
 
-/// never used, is an alternative to the readloop
-void beginRead()
-{
-    channels_processed = 0;
-    periodicTimer::setUpPeriodicISR2(readData); /// why??? can't just readData?
-    periodicTimer::startPeriodic2(1); /// the 1 clockcycle was only to check something, has nothing to do with the real code to read adc
+    ///* never used, is an alternative to the readloop
+    void beginRead()
+    {
+        channels_processed = 0;
+        periodicTimer::setUpPeriodicISR2(readData); /// why??? can't just readData?
+        periodicTimer::startPeriodic2(1);           /// the 1 clockcycle was only to check something, has nothing to do with the real code to read adc
 
-    // gpt::setUpGptISR(readData);
-    // gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-    // gpt::startTimer(132000000); // fix magic number.
-}
+        // gpt::setUpGptISR(readData);
+        // gpio::write_pin(_RD, 0, IMXRT_GPIO7);
+        // gpt::startTimer(132000000); // fix magic number.
+    }
 
-/// never used, will be called if begin read is called.
-void stopRead()
-{
-    periodicTimer::stopPeriodic2();
+    ///* never used, will be called if begin read is called.
+    void stopRead()
+    {
+        periodicTimer::stopPeriodic2();
 
-    // void (*void_func)(void);
-    //  set gpio interrupt to do nothing.
-    // gpioInterrupt::setUpGpioISR(void_func);
-}
+        // void (*void_func)(void);
+        //  set gpio interrupt to do nothing.
+        // gpioInterrupt::setUpGpioISR(void_func);
+    }
 
-/// @brief function to start the conversion of data from ADC. once ADC is ready to output data, GpioISR will be triggered by the BUSY pin
-void triggerConversion()
-{
+    /// @brief function to start the conversion of data from ADC. once ADC is ready to output data, GpioISR will be triggered by the BUSY pin
+    void triggerConversion()
+    {
 
-    /// will pull the CONVST line high, that indicates to the adc to start conversion
-    gpio::write_pin(CONVST, 1, IMXRT_GPIO7);
-    if (1) {
+        /// will pull the CONVST line high, that indicates to the adc to start conversion
         gpio::write_pin(CONVST, 1, IMXRT_GPIO7);
-    } // This creates a 50ns delay
-    gpio::write_pin(CONVST, 0, IMXRT_GPIO7);
+        if (1)
+        {
+            gpio::write_pin(CONVST, 1, IMXRT_GPIO7);
+        } // This creates a 50ns delay
+        gpio::write_pin(CONVST, 0, IMXRT_GPIO7);
 
-    // beginRead();
+        // beginRead();
 
-    gpioInterrupt::setUpGpioISR(readLoop); /// why doing it every time and not in an init() function
-    /// problem?: this only sets the function that will be called, but doesn't start or stop the timer.
-    ///
+        gpioInterrupt::setUpGpioISR(readLoop); /// why doing it every time and not in an init() function
+                                               /// problem?: this only sets the function that will be called, but doesn't start or stop the timer.
+                                               ///
 
-    // #endif //DISABLING THIS AND SIMULATING "BUSY" INSTEAD
+        // #endif //DISABLING THIS AND SIMULATING "BUSY" INSTEAD
 
 #ifdef SERIAL_DEBUG
-    Serial.println("Set CONVST pin to high.");
-    Serial.printf("%d\n", ((IMXRT_GPIO7.DR) & (0x1 << CONVST)) >> CONVST);
+        Serial.println("Set CONVST pin to high.");
+        Serial.printf("%d\n", ((IMXRT_GPIO7.DR) & (0x1 << CONVST)) >> CONVST);
 #endif
-}
-
-/// @brief reads the data of 1 channel (called from interupt routine)
-/// called from timer 2 when called beginRead before
-void readData()
-{
-    gpio::write_pin(_RD, 0, IMXRT_GPIO7); // go to next channel;
-    sampleData[channels_processed] = gpio::read_pins(); //// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
-    gpio::write_pin(_RD, 1, IMXRT_GPIO7);
-    channels_processed++;
-    // will automatically stop
-    if (channels_processed == N_CHANNELS) {
-        stopRead();
-    } /* else {
-        /// probably need to wait a bit before doing next read.          /// depends on frequency of timer that calls this function
-        gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-        gpt::startTimer(132000000);
-    } */
-}
-
-/// is trying to to the same than readData but without interrupt, back top back. Written by two different persons
-void readLoop()
-{
-    for (int i = 0; i < 5; i++) {
-        gpio::write_pin(_RD, 0, IMXRT_GPIO7); /// tells the adc to put data on the line
-        sampleData[channels_processed] = gpio::read_pins(); //// reads value from ADC on parallel data bus
-        gpio::write_pin(_RD, 1, IMXRT_GPIO7); /// finish read operation, next loop the adc will put data from next channel on the line
     }
-    for (int i = 5; i < 8; i++) { /// this would be channel 6 to 8, that we don't need
-        gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-        /// could probably be replaced with a real delay, it happened to be exactly the right delay to call this function
-        if (1) {
-            gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-        } /// not reading it, just faking it
+
+    /// @brief reads the data of 1 channel (called from interupt routine)
+    /// called from timer 2 when called beginRead before
+    void readData()
+    {
+        gpio::write_pin(_RD, 0, IMXRT_GPIO7);               // go to next channel;
+        sampleData[channels_processed] = gpio::read_pins(); /// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
         gpio::write_pin(_RD, 1, IMXRT_GPIO7);
+        channels_processed++;
+        // will automatically stop
+        if (channels_processed == N_CHANNELS)
+        {
+            stopRead();
+        } /* else {
+            /// probably need to wait a bit before doing next read.          /// depends on frequency of timer that calls this function
+            gpio::write_pin(_RD, 0, IMXRT_GPIO7);
+            gpt::startTimer(132000000);
+        } */
     }
-    transferData();
-}
 
-void transferData()
-{
-    ChannelA0.insert(sampleData[0]);
-    ChannelA1.insert(sampleData[1]);
-    ChannelB0.insert(sampleData[2]);
-    ChannelB1.insert(sampleData[3]);
-    ChannelC0.insert(sampleData[4]);
-}
+    /// is trying to to the same than readData but without interrupt, back top back. Written by two different persons
+    void readLoop()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            gpio::write_pin(_RD, 0, IMXRT_GPIO7);               /// tells the adc to put data on the line
+            sampleData[channels_processed] = gpio::read_pins(); /// reads value from ADC on parallel data bus
+            gpio::write_pin(_RD, 1, IMXRT_GPIO7);               /// finish read operation, next loop the adc will put data from next channel on the line
+        }
+        for (int i = 5; i < 8; i++)
+        { /// this would be channel 6 to 8, that we don't need
+            gpio::write_pin(_RD, 0, IMXRT_GPIO7);
+            /// could probably be replaced with a real delay, it happened to be exactly the right delay to call this function
+            if (1)
+            {
+                gpio::write_pin(_RD, 0, IMXRT_GPIO7);
+            } /// not reading it, just faking it
+            gpio::write_pin(_RD, 1, IMXRT_GPIO7);
+        }
+        transferData();
+    }
 
-/// @brief configures the ADC --> is probably not correct, depends on what is needed
-void config()
-{
+    void transferData()
+    {
+        ChannelA0.insert(sampleData[0]);
+        ChannelA1.insert(sampleData[1]);
+        ChannelB0.insert(sampleData[2]);
+        ChannelB1.insert(sampleData[3]);
+        ChannelC0.insert(sampleData[4]);
+    }
 
-    // see write access timing diagram on p.19 of ADC data sheet.
-    // when _CS and _WR are low, we can write to the ADC config registers.
-    // writes to the 16 most significant bits first.
-    // check p.39 for info about config register
+    /// @brief configures the ADC --> is probably not correct, depends on what is needed
+    void config()
+    {
 
-    gpio::configPin(_CS, 1, IMXRT_GPIO7);
-    gpio::write_pin(_CS, 0, IMXRT_GPIO7);
+        // see write access timing diagram on p.19 of ADC data sheet.
+        // when _CS and _WR are low, we can write to the ADC config registers.
+        // writes to the 16 most significant bits first.
+        // check p.39 for info about config register
 
-    gpio::configPin(_WR, 1, IMXRT_GPIO7);
-    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 1st write access, needs to be low for AT LEAST 15ns
+        gpio::configPin(_CS, 1, IMXRT_GPIO7);
+        gpio::write_pin(_CS, 0, IMXRT_GPIO7);
 
-    // We want BUSY/INT in interrupt mode, therefore we want the 27th bit in the ADC's config register to be high,
-    // meaning DB(27-16) = DB11 = 1 (IN THE SECOND CONFIG CYCLE).
+        gpio::configPin(_WR, 1, IMXRT_GPIO7);
+        gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 1st write access, needs to be low for AT LEAST 15ns
 
-    delayNanoseconds(5); // t_SUDI/t_HDI
+        // We want BUSY/INT in interrupt mode, therefore we want the 27th bit in the ADC's config register to be high,
+        // meaning DB(27-16) = DB11 = 1 (IN THE SECOND CONFIG CYCLE).
 
-    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 1st write access, needs to be high AT LEAST 10ns
+        delayNanoseconds(5); // t_SUDI/t_HDI
 
-    delayNanoseconds(10); // t_WRH
+        gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 1st write access, needs to be high AT LEAST 10ns
 
-    gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 2nd write access
+        delayNanoseconds(10); // t_WRH
 
-    gpio::configPin(DB11, 1, IMXRT_GPIO6);
-    gpio::write_pin(DB11, 1, IMXRT_GPIO6);
-    delayNanoseconds(5); // t_SUDI/t_HDI
+        gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 2nd write access
 
-    gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 2nd write access
-    gpio::write_pin(_CS, 1, IMXRT_GPIO7);
-}
+        gpio::configPin(DB11, 1, IMXRT_GPIO6);
+        gpio::write_pin(DB11, 1, IMXRT_GPIO6);
+        delayNanoseconds(5); // t_SUDI/t_HDI
+
+        gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 2nd write access
+        gpio::write_pin(_CS, 1, IMXRT_GPIO7);
+    }
 
 } // adc
