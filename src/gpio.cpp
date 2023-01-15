@@ -16,15 +16,15 @@ namespace gpio
 #ifdef SERIAL_DEBUG
         Serial.printf("Setting up GPIO registers\n");
 #endif
-        //! For DMA we need to use the other ports (1 and 2?), not the fast mode
+        //! For DMA we need to use the slower ports (1), not the fast mode
         //* bad way of doing, there are other pins on these ports that are not used
         //* for the ADC, they might be used by something else
         IMXRT_GPIO6.GDIR = 0xFFFFFFFF; /// sets as output
-        IMXRT_GPIO7.GDIR = 0xFFFFFFFF;
+        ////IMXRT_GPIO7.GDIR = 0xFFFFFFFF;
         IMXRT_GPIO6.DR_CLEAR = 0xFFFFFFFF; /// clears the pins(outputting 0)
-        IMXRT_GPIO7.DR_CLEAR = 0xFFFFFFFF;
+        ////IMXRT_GPIO7.DR_CLEAR = 0xFFFFFFFF;
         IMXRT_GPIO6.GDIR = 0x0; //? should do the same as the 2 lines above???
-        IMXRT_GPIO7.GDIR = 0x0;
+                                ////IMXRT_GPIO7.GDIR = 0x0;
 #ifdef SERIAL_DEBUG
         dump_GPIO_registers();
 #endif
@@ -49,13 +49,13 @@ namespace gpio
     // inside
     inline void read_pin(int pin, uint16_t *data, uint32_t reg)
     {
-        //? does this work, not same syntax as writing? reg is not a pointer but a
-        // value
+        //? does this work, not same syntax as writing? reg is not a pointer but a value
         *data |= (((reg) & (0x1 << pin)) >> (pin - core_to_sample_bit[pin])); /// moves the pin value to right position in
                                                                               /// data, see adc.h, this is hardcoded to
                                                                               /// match the acoustics board
     }
 
+    // return 0 or 1
     uint8_t read_pin(int pin, IMXRT_GPIO_t &GPIO_n)
     {
         return (((GPIO_n.PSR) & (0x1 << pin)) >> (pin - core_to_sample_bit[pin]));
@@ -83,6 +83,17 @@ namespace gpio
         /// same as above, there are registers (.DR_TOGGLE) that will toggle the bits
         /// where a 1 is written
         GPIO_n.DR_TOGGLE |= (1 << pin);
+    }
+
+    void write_port(uint32_t reg_value, IMXRT_GPIO_t &GPIO_n, uint32_t mask = 0xFFFFFFFF)
+    {
+        GPIO_n.DR_SET = reg_value & mask;
+        GPIO_n.DR_CLEAR = ~reg_value & mask; // flipping bits to set the bits that needs to be cleared
+    }
+
+    uint32_t read_port(IMXRT_GPIO_t &GPIO_n)
+    {
+        return GPIO_n.PSR;
     }
 
     //? what is this function supposed to do?

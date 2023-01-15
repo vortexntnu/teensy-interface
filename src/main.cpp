@@ -1,6 +1,8 @@
 #include <ethernetModule.h>
 #include <Arduino.h>
 
+#include "DMAChannel.h"
+
 #include "gpio.h"
 #include "PIT.h"
 #include "gpioInterrupt.h"
@@ -77,8 +79,9 @@ int main()
     Serial.print("F_CPU actual : ");
     Serial.println(F_CPU_ACTUAL);
 
-    blinking_led();
+    // blinking_led();
     // testing_timers_basic(); // in test file
+    test_par_interface();
 
     // State state = State::IDLE;
 
