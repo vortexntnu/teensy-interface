@@ -9,9 +9,10 @@
 
 #include "TimerOne.h"
 
-void test_timers();
 void print_dummy_1();
 void print_dummy_2();
+void print_dummy_3();
+void print_dummy_4();
 
 void testing_timers_basic()
 {
@@ -42,6 +43,55 @@ void testing_timers_basic()
     }
 }
 
+void testing_timers_general()
+{
+    clock::setup();
+    periodicTimer::setup();
+
+    Serial.println("Initialisation and starting PIT0, dummy3");
+    periodicTimer::startPeriodic(print_dummy_3, 0xFFFFFF, periodicTimer::PIT_0);
+
+    periodicTimer::stopPeriodic(periodicTimer::PIT_0);
+    Serial.println("PIT0 stopped");
+
+    periodicTimer::setUpPeriodicISR(print_dummy_1, periodicTimer::PIT_0);
+    periodicTimer::setUpPeriodicISR(print_dummy_2, periodicTimer::PIT_1);
+    periodicTimer::setUpPeriodicISR(print_dummy_3, periodicTimer::PIT_2);
+    periodicTimer::setUpPeriodicISR(print_dummy_4, periodicTimer::PIT_3);
+
+    Serial.println("Setting up timers with ISR functions and starting them");
+    delay(3000);
+
+    periodicTimer::startPeriodic(0xFFFFFFF, periodicTimer::PIT_0);
+    periodicTimer::startPeriodic(0xFFFFFF, periodicTimer::PIT_1);
+    periodicTimer::startPeriodic(0xFFFFFFF, periodicTimer::PIT_2);
+    periodicTimer::startPeriodic(0xFFFFFF, periodicTimer::PIT_3);
+
+    while (42)
+    {
+        for (uint8_t i = 0; i < 10; i++)
+        {
+            delay(1000);
+            Serial.println("waited 1s");
+        }
+
+        for (uint8_t i = 0; i <= 3; i++)
+        {
+            periodicTimer::stopPeriodic(i);
+        }
+        Serial.println("timers disabled");
+        delay(4000);
+        Serial.println("waited 4 seconds, timers in 1s");
+        delay(1000);
+
+        for (uint8_t i = 0; i <= 3; i++)
+        {
+            // checking the sub function
+            periodicTimer::startPeriodic(i);
+        }
+    }
+}
+
 void print_dummy_1()
 {
     Serial.println("Dummy 1");
@@ -49,6 +99,14 @@ void print_dummy_1()
 void print_dummy_2()
 {
     Serial.println("Dummy  2");
+}
+void print_dummy_3()
+{
+    Serial.println("Dummy 3");
+}
+void print_dummy_4()
+{
+    Serial.println("Dummy  4");
 }
 
 // connect a LED with resistor from pin 4 to ground, it will blink
