@@ -17,8 +17,7 @@ namespace gpio
         Serial.printf("Setting up GPIO registers\n");
 #endif
         //! For DMA we need to use the slower ports (1), not the fast mode
-        //* bad way of doing, there are other pins on these ports that are not used
-        //* for the ADC, they might be used by something else
+        //* bad way of doing, there are other pins on these ports that are not used for the ADC, they might be used by something else
         IMXRT_GPIO6.GDIR = 0xFFFFFFFF; /// sets as output
         ////IMXRT_GPIO7.GDIR = 0xFFFFFFFF;
         IMXRT_GPIO6.DR_CLEAR = 0xFFFFFFFF; /// clears the pins(outputting 0)
@@ -42,6 +41,15 @@ namespace gpio
         {
             GPIO_n.GDIR &= !(1 << pin);
         }
+    }
+
+    void configPort(IMXRT_GPIO_t &GPIO_n, uint32_t reg_val, uint32_t mask = 0xFFFFFFFF)
+    {
+        // keeping the values we mask, and overwriting the other
+        GPIO_n.GDIR = (GPIO_n.GDIR & ~mask) | (reg_val & mask);
+
+        // GPIO_n.G = reg_value & mask;
+        // GPIO_n.DR_CLEAR = ~reg_value & mask; // flipping bits to set the bits that needs to be cleared
     }
 
     // info: inline: kinda like a macro, replace the fonction call with directly the
@@ -80,8 +88,7 @@ namespace gpio
 
     void toggle_pin(int pin, IMXRT_GPIO_t &GPIO_n)
     {
-        /// same as above, there are registers (.DR_TOGGLE) that will toggle the bits
-        /// where a 1 is written
+        // same as above, there are registers (.DR_TOGGLE) that will toggle the bits where a 1 is written
         GPIO_n.DR_TOGGLE |= (1 << pin);
     }
 

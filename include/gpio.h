@@ -18,6 +18,8 @@ namespace gpio
     /// @param GPIO_n: The GPIO port of the pin
     void configPin(int pin, int mode, IMXRT_GPIO_t &GPIO_n);
 
+    void configPort(IMXRT_GPIO_t &GPIO_n, uint32_t reg_val, uint32_t mask = 0xFFFFFFFF);
+
     /// reads the pin of register reg, and modifies the corresponding bit in data
     /// (using const uint8_t core_to_sample_bit[32])
     inline void read_pin(int pin, uint16_t *data, uint32_t reg);
