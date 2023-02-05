@@ -3,6 +3,8 @@
 
 #include "DMAChannel.h"
 
+#define TESTING
+
 #include "gpio.h"
 #include "PIT.h"
 #include "gpioInterrupt.h"
@@ -10,9 +12,11 @@
 #include "clock.h"
 #include "adc.h"
 
+#ifdef TESTING
 #include "testing.h" // all the test function should be here
+#endif
 
-#define SERIAL_DEBUG
+// #define SERIAL_DEBUG
 
 // This can be any wanted character array / string
 
@@ -72,23 +76,19 @@ int main()
     }
     Serial.printf("Serial connected\r\n");
 #endif
-
-    Serial.print("F_CPU actual : ");
-    Serial.println(F_CPU_ACTUAL);
-    // adc::setup();
-    Serial.print("F_CPU actual : ");
-    Serial.println(F_CPU_ACTUAL);
-
     clock::setup();
     uint32_t timer_freq = clock::get_clockcycles_micro(1000);
     Serial.print("Clockccles for 1s : ");
     Serial.println(timer_freq, HEX);
 
+#ifdef TESTING
     // blinking_led();
-    testing_timers_general(); // in test file
+    // testing_timers_general(); // in test file
     // testing_timers_basic();
     //  periodicTimer::startPeriodic(3000, periodicTimer::PIT_1);
-    //  test_par_interface();
+    // test_par_interface();
+    test_ADC_timer();
+#endif
 
     // State state = State::IDLE;
 

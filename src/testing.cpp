@@ -205,3 +205,23 @@ void test_par_interface()
         delay(2000);
     }
 }
+
+/*
+testing the order of parallel databus access. The timer period needs to be slow enough to see
+* connect LEDS like for testing parallel interface
+* add a LED on pin for CONVST
+*/
+void test_ADC_timer()
+{
+    adc::init();
+
+    gpio::configPin(adc::HWSW, 1, HWSW_GPIO_PORT_NORMAL);
+    gpio::write_pin(adc::HWSW, 1, HWSW_GPIO_PORT_NORMAL);
+
+    adc::startConversion();
+    Serial.println("Conversion started");
+
+    delay(60000);
+    adc::stopConversion();
+    Serial.println("Conversion stopped");
+}

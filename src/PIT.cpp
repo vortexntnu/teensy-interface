@@ -184,6 +184,15 @@ namespace periodicTimer
 
     //* ----------- general function, generelized for all 4 timers ---------------
 
+    // setting up timer, so that a call to startPeriodic is enought (chained has to be set there if needed)
+    void setUpPeriodicISR(void_function_ptr function, uint32_t clockcycles, PIT_channels PIT_number)
+    {
+        if (PIT_number > 3)
+            return;
+        isr_funct_table[PIT_number] = function;
+        PIT[PIT_number]->LDVAL = clockcycles;
+    }
+
     void setUpPeriodicISR(void_function_ptr function, PIT_channels PIT_number)
     {
         if (PIT_number > 3)

@@ -34,6 +34,7 @@ namespace periodicTimer
     void stopPeriodic3();
 
     // general
+    void setUpPeriodicISR(void_function_ptr function, uint32_t clockcycles, PIT_channels PIT_number);
     void setUpPeriodicISR(void_function_ptr function, PIT_channels PIT_number);
     void startPeriodic(void_function_ptr ISR_func, uint32_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0);
     void startPeriodic(uint32_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0);

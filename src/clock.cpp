@@ -30,7 +30,7 @@ namespace clock
         CCM_CSCMR1 &= ~CCM_CSCMR1_PERCLK_CLK_SEL;
         CCM_CSCMR1 &= ~CCM_CSCMR1_PERCLK_PODF(0); // divide /1
 
-        clockFreq = 150000000;
+        PITclockFreq = 150000000;
 // Clock: 150 MHz -> Period: 6.667 ns (IN THEORY)
 #endif
 
@@ -51,12 +51,12 @@ namespace clock
 
     uint32_t get_clockcycles_micro(uint32_t microseconds)
     {
-        return microseconds * (PITclockFreq / 1000);
+        return microseconds * (PITclockFreq / 1000000);
     }
 
     uint32_t get_clockcycles_nano(uint32_t nanoseconds)
     {
-        return nanoseconds * (PITclockFreq / 1000000);
+        return nanoseconds * (PITclockFreq / 1000000000);
     }
 
 }; // namespace clock

@@ -25,9 +25,10 @@ First call adc::setup(), to set up all the timers and GPIOS needed for the commu
     How it should work: from ADC datasheet
     init():
         -configuring the pins: maybe need to reconfigure from write to read --> test
-            -CS(13), RD(12), WR(11), PAR/SER(8), CONVST as output, BUSY/INT(35) as input
+            -CS(13), RD(12), WR(11), PAR/SER(8), HW/SW(37) CONVST as output, BUSY/INT(35) as input
             -floating pins in software: XCLK/RANGE, REFEN
         -settings pins to enable software and parallel mode
+        Config ADC:
         -finding the right register value
         -write value to register
     config_adc():
@@ -64,133 +65,198 @@ First call adc::setup(), to set up all the timers and GPIOS needed for the commu
 
 namespace adc
 {
-
-    static int channels_processed;
+#define TESTING
+#define DB_MASK 0xFFFF0000 // bit 16 to 31 of port 1 are the parallel interface
+#define DB_REG_SHIFT 16    // values in GPIO reg must be shifted by 16
+    uint8_t channels_processed;
+#ifdef TESTING
+    uint16_t testing_value_par;
+#endif
 
     // sets pins accordingly to value (no control signals)
     void write_ADC_par(uint16_t value);
     // returns value on par-bus to ADC (no control signals)
     uint16_t read_ADC_par();
 
+    void init()
+    {
+        // going back to normal GPIO mode (port 1-5)
+        IOMUXC_GPR_GPR26 = 0x0; // 0xFFFFFFFF to use fast GPIO
+        IOMUXC_GPR_GPR27 = 0x0; // each bit can be configured normal or fast
+        IOMUXC_GPR_GPR28 = 0x0;
+        IOMUXC_GPR_GPR29 = 0x0;
+
+        // BUSYINT as input
+        gpio::configPin(BUSYINT, 0, BUSYINT_GPIO_PORT_NORMAL);
+        // ? configuring interrupt fot this pin, will be activated in start_conversion
+
+        // _CS as output, high because interface is not enable on start-up
+        gpio::configPin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+        gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+
+        // HWSW as output, HIGH to select software mode
+        gpio::configPin(HWSW, 1, HWSW_GPIO_PORT_NORMAL);
+        gpio::write_pin(HWSW, 1, HWSW_GPIO_PORT_NORMAL);
+
+        // PAR/SER as output, LOW to select parallel interface
+        gpio::configPin(PARSER, 1, HWSW_GPIO_PORT_NORMAL);
+        gpio::write_pin(PARSER, 0, HWSW_GPIO_PORT_NORMAL);
+
+        // we are in software mode: XCLK as output, LOW (to ground) because NOT used
+        gpio::configPin(XCLK, 1, XCLK_GPIO_PORT_NORMAL);
+        gpio::write_pin(XCLK, 0, XCLK_GPIO_PORT_NORMAL);
+
+        // _RD as output, HIGH, communication inactive
+        gpio::configPin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+        gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+
+        // _STBY as output, LOW because we use software mode (p8)
+        gpio::configPin(STBY, 1, STBY_GPIO_PORT_NORMAL);
+        gpio::write_pin(STBY, 0, STBY_GPIO_PORT_NORMAL);
+
+        // CONVST as output, LOW
+        gpio::configPin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
+        gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
+
+        // RESET as output, active high
+        gpio::configPin(RESET, 1, RESET_GPIO_PORT_NORMAL);
+        gpio::write_pin(RESET, 0, RESET_GPIO_PORT_NORMAL);
+
+        // configuring parallel interface, as input
+#ifndef TESTING
+        gpio::configPort(DB_GPIO_PORT_NORMAL, 0x00000000, DB_MASK);
+#endif
+#ifdef TESTING
+        // output, for testing pourpuse (LEDs)
+        gpio::configPort(DB_GPIO_PORT_NORMAL, 0xFFFF0000, DB_MASK);
+#endif
+
+        // defining value of register
+        // uint32_t ADC_reg_config;
+        // config(ADC_reg_config);
+        setup();
+    }
+
     // set up sampling
     void setup()
     {
-        gpio::setup();  /// set the data bus pins as output and cleares them
         clock::setup(); /// the clockfrequency needs to be defined somewhere, does it need to be called also if adc is not init()
-        gpt::setup();
+        // gpt::setup();
         periodicTimer::setup();
         // gpioInterrupt::setup(); //NEEDS TO BE FIXED
-
-        gpio::configPin(CONVST, 1, IMXRT_GPIO7);
-        gpio::configPin(_CS, 1, IMXRT_GPIO7);
-        gpio::configPin(_RD, 1, IMXRT_GPIO7);
-        gpio::configPin(_WR, 1, IMXRT_GPIO7);
-
-        // gpio::configPin(CONVST, 0, IMXRT_GPIO7); /// why do the same again, but CONVST and _CS as input now?
-        // gpio::write_pin(_CS, 0, IMXRT_GPIO7);
-        // gpio::write_pin(_RD, 1, IMXRT_GPIO7);
-        // gpio::write_pin(_WR, 1, IMXRT_GPIO7);
-
-#ifdef SERIAL_DEBUG
-        Serial.printf("_CS: %d\n", (((IMXRT_GPIO7.DR) & (0x1 << _CS)) >> _CS));
-        Serial.printf("_RD: %u\n", (((IMXRT_GPIO7.DR) & (0x1 << _RD)) >> _RD));
-#endif
+        periodicTimer::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000), periodicTimer::PIT_1);
+        periodicTimer::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000), periodicTimer::PIT_2);
+        // ! connect beginRead() to BUSY/INT interrupt
     }
 
-    ///* never called
-    void stopConversion()
-    {
-        gpio::write_pin(CONVST, 0, IMXRT_GPIO7);
-        periodicTimer::stopPeriodic3();
-#ifdef SERIAL_DEBUG
-        Serial.println("Set CONVST pin to low.");
-        Serial.printf("%d\n", ((IMXRT_GPIO7.DR) & (0x1 << CONVST)) >> CONVST);
-#endif
-    }
-
+    // is starting the major loop timer, PIT0 that will trigger the conversion until stopped
     void startConversion()
     {
-        periodicTimer::setUpPeriodicISR3(triggerConversion); /// this is the only time setUpPeriodicISR3 gets called
-        periodicTimer::startPeriodic3(250);                  /// will it call triggerConversion every 250 clockcycles???
+        Serial.println("Starting conversion");
+        // ? do it in one call?
+        periodicTimer::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000 * 15), periodicTimer::PIT_0);
+
+        periodicTimer::startPeriodic(periodicTimer::PIT_0); // will call triggerConversion every 250 clockcycles
     }
 
-    void write_ADC_par(uint16_t value)
+    void stopConversion()
     {
-        gpio::write_port(value << 16, DB_GPIO_PORT_NORMAL, 0xFFFF0000);
-    }
-    uint16_t read_ADC_par()
-    {
-        return gpio::read_port(DB_GPIO_PORT_NORMAL) >> 16;
-    }
+        Serial.println("Stopping conversion and resetting pins");
+        for (uint8_t i = 0; i < 3; i++)
+        {
+            periodicTimer::stopPeriodic(i);
+        }
+        gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+        gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
+        gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
 
-    ///* never used, is an alternative to the readloop
-    void beginRead()
-    {
-        channels_processed = 0;
-        periodicTimer::setUpPeriodicISR2(readData); /// why??? can't just readData?
-        periodicTimer::startPeriodic2(1);           /// the 1 clockcycle was only to check something, has nothing to do with the real code to read adc
-
-        // gpt::setUpGptISR(readData);
-        // gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-        // gpt::startTimer(132000000); // fix magic number.
-    }
-
-    ///* never used, will be called if begin read is called.
-    void stopRead()
-    {
-        periodicTimer::stopPeriodic2();
-
-        // void (*void_func)(void);
-        //  set gpio interrupt to do nothing.
-        // gpioInterrupt::setUpGpioISR(void_func);
+        // resetting ADC from actual conversion
+        gpio::write_pin(RESET, 1, RESET_GPIO_PORT_NORMAL);
+        delay(1);
+        gpio::write_pin(RESET, 0, RESET_GPIO_PORT_NORMAL);
     }
 
     /// @brief function to start the conversion of data from ADC. once ADC is ready to output data, GpioISR will be triggered by the BUSY pin
     void triggerConversion()
     {
+        // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
+        gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
 
-        /// will pull the CONVST line high, that indicates to the adc to start conversion
-        gpio::write_pin(CONVST, 1, IMXRT_GPIO7);
-        if (1)
-        {
-            gpio::write_pin(CONVST, 1, IMXRT_GPIO7);
-        } // This creates a 50ns delay
-        gpio::write_pin(CONVST, 0, IMXRT_GPIO7);
-
-        // beginRead();
-
-        gpioInterrupt::setUpGpioISR(readLoop); /// why doing it every time and not in an init() function
-                                               /// problem?: this only sets the function that will be called, but doesn't start or stop the timer.
-                                               ///
-
-        // #endif //DISABLING THIS AND SIMULATING "BUSY" INSTEAD
-
-#ifdef SERIAL_DEBUG
-        Serial.println("Set CONVST pin to high.");
-        Serial.printf("%d\n", ((IMXRT_GPIO7.DR) & (0x1 << CONVST)) >> CONVST);
-#endif
+        // ! enable interrupt on BUSY/INT pin
+        // ! function to be called :
+        // gpioInterrupt::setUpGpioISR(beginRead); //? why doing it every time and not in an init() function
+        // so far for testing:
+        Serial.println("Delaying (conversion)");
+        delay(2000);
+        beginRead();
     }
 
-    /// @brief reads the data of 1 channel (called from interupt routine)
-    /// called from timer 2 when called beginRead before
+    // resetting channels_processed and CONVST, continues with readData
+    void beginRead()
+    {
+        Serial.println("beginRead()");
+        // ! disable interrupts from BUSY/INT, will be enabled again by next triggerConvst()
+        // PIT0 is continuing to run, will trigger next call in (250?) clockcycles
+
+        channels_processed = 0;
+        testing_value_par = 1;
+        // no need to have CONVST high now
+        gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
+
+        gpio::write_pin(_CS, 0, _CS_GPIO_PORT_NORMAL);
+        gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+        // should take at least 20ns to trigger timer
+        periodicTimer::startPeriodic(periodicTimer::PIT_1); // will call readData()
+    }
+
+    // reads the data on the parallel bus, when beginRead() was called
     void readData()
     {
-        gpio::write_pin(_RD, 0, IMXRT_GPIO7);               // go to next channel;
-        sampleData[channels_processed] = gpio::read_pins(); /// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
-        gpio::write_pin(_RD, 1, IMXRT_GPIO7);
+        Serial.print("readData, channel nb : ");
+        Serial.println(channels_processed);
+        // disabling timer, so far it is not a periodic timer
+        periodicTimer::stopPeriodic(periodicTimer::PIT_1);
+
+#ifndef TESTING
+        sampleData[channels_processed] = read_ADC_par(); /// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
+#endif
+#ifdef TESTING
+        write_ADC_par(testing_value_par);
+        testing_value_par *= 2;
+#endif
+
+        gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
         channels_processed++;
+
         // will automatically stop
-        if (channels_processed == N_CHANNELS)
+        if (channels_processed == N_HYDROPHONES)
         {
             stopRead();
-        } /* else {
-            /// probably need to wait a bit before doing next read.          /// depends on frequency of timer that calls this function
-            gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-            gpt::startTimer(132000000);
-        } */
+        }
+        else
+        {
+            periodicTimer::startPeriodic(periodicTimer::PIT_2);
+        }
     }
 
-    /// is trying to to the same than readData but without interrupt, back top back. Written by two different persons
+    void next_RD()
+    {
+        Serial.println("next_RD");
+        periodicTimer::stopPeriodic(periodicTimer::PIT_2);
+        gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+        // will call readData
+        periodicTimer::startPeriodic(periodicTimer::PIT_1);
+    }
+
+    // turning of
+    void stopRead()
+    {
+        Serial.println("stopRead");
+        // timers are already off, no need to do anything
+        gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+    }
+
+    /// is trying to to the same than readData but without interrupt, back to back. Written by two different persons
     void readLoop()
     {
         for (int i = 0; i < 5; i++)
@@ -222,37 +288,46 @@ namespace adc
     }
 
     /// @brief configures the ADC --> is probably not correct, depends on what is needed
-    void config()
+    void config(uint32_t reg_val)
     {
-
-        // see write access timing diagram on p.19 of ADC data sheet.
-        // when _CS and _WR are low, we can write to the ADC config registers.
-        // writes to the 16 most significant bits first.
+        // pins as output
+        gpio::configPort(DB_GPIO_PORT_NORMAL, 0xFFFF0000, DB_MASK);
+        //* see write access timing diagram on p.19 of ADC data sheet
         // check p.39 for info about config register
+        // starting write access to ADC
+        gpio::write_pin(_CS, 0, _CS_GPIO_PORT_NORMAL);
+        gpio::write_pin(_WR, 0, _WR_GPIO_PORT_NORMAL);
 
-        gpio::configPin(_CS, 1, IMXRT_GPIO7);
-        gpio::write_pin(_CS, 0, IMXRT_GPIO7);
+        // writing MSBs first
+        write_ADC_par(reg_val >> 16);
 
-        gpio::configPin(_WR, 1, IMXRT_GPIO7);
-        gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 1st write access, needs to be low for AT LEAST 15ns
+        delayNanoseconds(15); // t_WRL; t_SUDI/t_HDI
 
-        // We want BUSY/INT in interrupt mode, therefore we want the 27th bit in the ADC's config register to be high,
-        // meaning DB(27-16) = DB11 = 1 (IN THE SECOND CONFIG CYCLE).
-
-        delayNanoseconds(5); // t_SUDI/t_HDI
-
-        gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 1st write access, needs to be high AT LEAST 10ns
+        gpio::write_pin(_WR, 1, _WR_GPIO_PORT_NORMAL);
 
         delayNanoseconds(10); // t_WRH
 
-        gpio::write_pin(_WR, 0, IMXRT_GPIO7); // start 2nd write access
+        // then writing LSBs, timing of t_HDI is respected
+        write_ADC_par(reg_val & 0xFFFF);
+        gpio::write_pin(_WR, 0, _WR_GPIO_PORT_NORMAL);
 
-        gpio::configPin(DB11, 1, IMXRT_GPIO6);
-        gpio::write_pin(DB11, 1, IMXRT_GPIO6);
-        delayNanoseconds(5); // t_SUDI/t_HDI
+        delayNanoseconds(15); // t_WRL
 
-        gpio::write_pin(_WR, 1, IMXRT_GPIO7); // stop 2nd write access
-        gpio::write_pin(_CS, 1, IMXRT_GPIO7);
+        gpio::write_pin(_WR, 1, _WR_GPIO_PORT_NORMAL); // stop 2nd write access
+        gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+
+        delayNanoseconds(5); // t_HDI
+
+        // pins back as inputs
+        gpio::configPort(DB_GPIO_PORT_NORMAL, 0x00000000, DB_MASK);
     }
 
-} // adc
+    void write_ADC_par(uint16_t value)
+    {
+        gpio::write_port(value << DB_REG_SHIFT, DB_GPIO_PORT_NORMAL, DB_MASK);
+    }
+    uint16_t read_ADC_par()
+    {
+        return gpio::read_port(DB_GPIO_PORT_NORMAL) >> DB_REG_SHIFT;
+    }
+}; // adc
