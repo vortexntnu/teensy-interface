@@ -11,24 +11,6 @@ namespace gpio
 
     */
 
-    void setup()
-    {
-#ifdef SERIAL_DEBUG
-        Serial.printf("Setting up GPIO registers\n");
-#endif
-        //! For DMA we need to use the slower ports (1), not the fast mode
-        //* bad way of doing, there are other pins on these ports that are not used for the ADC, they might be used by something else
-        IMXRT_GPIO6.GDIR = 0xFFFFFFFF; /// sets as output
-        ////IMXRT_GPIO7.GDIR = 0xFFFFFFFF;
-        IMXRT_GPIO6.DR_CLEAR = 0xFFFFFFFF; /// clears the pins(outputting 0)
-        ////IMXRT_GPIO7.DR_CLEAR = 0xFFFFFFFF;
-        IMXRT_GPIO6.GDIR = 0x0; //? should do the same as the 2 lines above???
-                                ////IMXRT_GPIO7.GDIR = 0x0;
-#ifdef SERIAL_DEBUG
-        dump_GPIO_registers();
-#endif
-    }
-
     void configPin(int pin, int mode, IMXRT_GPIO_t &GPIO_n)
     {
         // set to output mode.

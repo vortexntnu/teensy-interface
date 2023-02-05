@@ -10,9 +10,6 @@ namespace gpio
         9, 8, 4, 5, 2, 3, 7, 6, 0, 0, 10, 11, 0, 1,
         30, 31};
 
-    /// @brief configures the parallel bus pins to adc as outputs. why??
-    void setup();
-
     // set pin to input or output mode. 1->output. 0->input.
     /// @param pin: should be of type CORE_PINX_BIT, i.e. the pins number on the teensy.
     /// @param GPIO_n: The GPIO port of the pin
