@@ -79,9 +79,16 @@ int main()
     Serial.print("F_CPU actual : ");
     Serial.println(F_CPU_ACTUAL);
 
+    clock::setup();
+    uint32_t timer_freq = clock::get_clockcycles_micro(1000);
+    Serial.print("Clockccles for 1s : ");
+    Serial.println(timer_freq, HEX);
+
     // blinking_led();
-    // testing_timers_basic(); // in test file
-    test_par_interface();
+    testing_timers_general(); // in test file
+    // testing_timers_basic();
+    //  periodicTimer::startPeriodic(3000, periodicTimer::PIT_1);
+    //  test_par_interface();
 
     // State state = State::IDLE;
 

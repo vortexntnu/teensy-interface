@@ -67,6 +67,11 @@ namespace adc
 
     static int channels_processed;
 
+    // sets pins accordingly to value (no control signals)
+    void write_ADC_par(uint16_t value);
+    // returns value on par-bus to ADC (no control signals)
+    uint16_t read_ADC_par();
+
     // set up sampling
     void setup()
     {
@@ -107,6 +112,15 @@ namespace adc
     {
         periodicTimer::setUpPeriodicISR3(triggerConversion); /// this is the only time setUpPeriodicISR3 gets called
         periodicTimer::startPeriodic3(250);                  /// will it call triggerConversion every 250 clockcycles???
+    }
+
+    void write_ADC_par(uint16_t value)
+    {
+        gpio::write_port(value << 16, DB_GPIO_PORT_NORMAL, 0xFFFF0000);
+    }
+    uint16_t read_ADC_par()
+    {
+        return gpio::read_port(DB_GPIO_PORT_NORMAL) >> 16;
     }
 
     ///* never used, is an alternative to the readloop

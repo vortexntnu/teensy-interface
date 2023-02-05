@@ -22,10 +22,12 @@ namespace periodicTimer
         PIT_3
     } PIT_channels;
 
+    void setup();
+
     ////void ISR();     /// should not be called from outside!!
     void setUpPeriodicISR3(void_function_ptr function);
     void setUpPeriodicISR2(void_function_ptr function);
-    void setup();
+
     void startPeriodic3(int clockcycles);
     void startPeriodic2(int clockcycles);
     void stopPeriodic2();
@@ -33,8 +35,8 @@ namespace periodicTimer
 
     // general
     void setUpPeriodicISR(void_function_ptr function, PIT_channels PIT_number);
-    void startPeriodic(void_function_ptr ISR_func, uint16_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0);
-    void startPeriodic(uint16_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0);
+    void startPeriodic(void_function_ptr ISR_func, uint32_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0);
+    void startPeriodic(uint32_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0);
     void startPeriodic(PIT_channels PIT_number, uint8_t chained = 0);
     void stopPeriodic(PIT_channels PIT_number);
 } // periodicTimer

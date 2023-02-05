@@ -47,12 +47,14 @@ void testing_timers_general()
 {
     clock::setup();
     periodicTimer::setup();
-
+    Serial.println("Be prepared, start in 2s");
+    delay(2000);
     Serial.println("Initialisation and starting PIT0, dummy3");
-    periodicTimer::startPeriodic(print_dummy_3, 0xFFFFFF, periodicTimer::PIT_0);
-
+    periodicTimer::startPeriodic(print_dummy_3, 0xFFFFFFF, periodicTimer::PIT_0);
+    delay(8500);
     periodicTimer::stopPeriodic(periodicTimer::PIT_0);
     Serial.println("PIT0 stopped");
+    delay(5000);
 
     periodicTimer::setUpPeriodicISR(print_dummy_1, periodicTimer::PIT_0);
     periodicTimer::setUpPeriodicISR(print_dummy_2, periodicTimer::PIT_1);
@@ -62,10 +64,10 @@ void testing_timers_general()
     Serial.println("Setting up timers with ISR functions and starting them");
     delay(3000);
 
-    periodicTimer::startPeriodic(0xFFFFFFF, periodicTimer::PIT_0);
-    periodicTimer::startPeriodic(0xFFFFFF, periodicTimer::PIT_1);
-    periodicTimer::startPeriodic(0xFFFFFFF, periodicTimer::PIT_2);
-    periodicTimer::startPeriodic(0xFFFFFF, periodicTimer::PIT_3);
+    periodicTimer::startPeriodic(clock::get_clockcycles_micro(1000), periodicTimer::PIT_0);
+    periodicTimer::startPeriodic(clock::get_clockcycles_micro(1500), periodicTimer::PIT_1);
+    periodicTimer::startPeriodic(clock::get_clockcycles_micro(2000), periodicTimer::PIT_2);
+    periodicTimer::startPeriodic(clock::get_clockcycles_micro(3000), periodicTimer::PIT_3);
 
     while (42)
     {

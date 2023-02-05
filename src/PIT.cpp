@@ -10,7 +10,7 @@ namespace periodicTimer
     /// will be changed later, this keeps it generic
     static void dummyISR(void)
     {
-        Serial.println("Dummy");
+        Serial.println("Ahhh");
     }
 
     // inspired from <IntervalTimer.h>, makes it possible to have one general function for 4 timers
@@ -133,7 +133,7 @@ namespace periodicTimer
         PIT_TCTRL3 = 0x0;
 
         // all PIT interrupts are grouped into one IRQ
-        attachInterruptVector(IRQ_PIT, ISR);
+        attachInterruptVector(IRQ_PIT, ISR_table);
         NVIC_ENABLE_IRQ(IRQ_PIT); /// is activating the interrupt management for IRQ_PIT
 #ifdef SERIAL_DEBUGs
         dumpPeriodicRegisters();
@@ -191,7 +191,7 @@ namespace periodicTimer
         isr_funct_table[PIT_number] = function;
     }
 
-    void startPeriodic(void_function_ptr ISR_func, uint16_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0)
+    void startPeriodic(void_function_ptr ISR_func, uint32_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0)
     {
         if (PIT_number > 3)
             return;
@@ -199,7 +199,7 @@ namespace periodicTimer
         startPeriodic(clockcycles, PIT_number, chained);
     }
 
-    void startPeriodic(uint16_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0)
+    void startPeriodic(uint32_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0)
     {
         if (PIT_number > 3)
             return;
