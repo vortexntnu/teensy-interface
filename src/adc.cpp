@@ -287,7 +287,8 @@ namespace adc
         ChannelC0.insert(sampleData[4]);
     }
 
-    /// @brief configures the ADC --> is probably not correct, depends on what is needed
+    /// @brief configures the ADC
+    // !--> needs to be tested !!!
     void config(uint32_t reg_val)
     {
         // pins as output
