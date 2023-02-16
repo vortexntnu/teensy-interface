@@ -6,6 +6,7 @@
 #include "gpioInterrupt.h"
 
 /// How it should work (is planned in the code) at the moment:
+// ! old version, only here to have a trace off what has been attempted
 /*
 First call adc::setup(), to set up all the timers and GPIOS needed for the communication
  - adc::config: writing register values to adc with custom parallel bus interface
@@ -16,14 +17,11 @@ First call adc::setup(), to set up all the timers and GPIOS needed for the commu
    adc::readLoop() : loops to get all channels from adc, not using channel 6-7-8.
    Then calling adc::tranferData()
  - adc::transferData(): puts the data from adc into the ringbuffers
-
- A different way of doing it seems to be also implemented:
-
 */
 
 /*
-    How it should work: from ADC datasheet
-    init():
+*----How it should work: from ADC datasheet -----
+*    init():
         -configuring the pins: maybe need to reconfigure from write to read --> test
             -CS(13), RD(12), WR(11), PAR/SER(8), HW/SW(37) CONVST as output, BUSY/INT(35) as input
             -floating pins in software: XCLK/RANGE, REFEN
@@ -31,7 +29,7 @@ First call adc::setup(), to set up all the timers and GPIOS needed for the commu
         Config ADC:
         -finding the right register value
         -write value to register
-    config_adc():
+*    config_adc():
         -PAR-pins as output (16 pins)
         -CS first and then WR low (for at least 15ns)
         -to avoid any timing problem, output register value before pulling low
@@ -41,22 +39,33 @@ First call adc::setup(), to set up all the timers and GPIOS needed for the commu
         -WR to low for at least 15ns
         -First WR high, then CS, data must be valid for 5ns more!
         IF bit 30, the register values can be read (maybe on parallel interface) on SDO_A
-    start_convertion():
+*    start_convertion():
         -pull CONVST high to start conversion (all channels at the same time)
         -CONVST can stay high or pulled low after, best is when BUSY/INT happens
         -if using BUSY: max time to BUSY high: 25ns. Then stays high for max 1,7 micro sec
             depending on ADC model (12-14-16 bit), don't care about time, using BUSY pin
+*    beginRead():
         -wait for at least 86ns (model dependant, we have 12-bit resolution)
+        -CONVST to LOW
         -CS low, then RD low(no delay needed between)
         -CS can stay low
-        Repeat:
-        -RD has to be low for at least 20ns
+        -resetting channels_processed
+        - starting timer to call readData()
+       ! - RD has to be low for at least 20ns
+Repeat:
+*    readData():
+        - stopping timer that called this function
+        TODO: use non-periodic timers
         -value on PAR-bus is ready after max 15ns after RD low
-        -RD must be high for at least 2ns for next data. data is valid for 5ns after rising edge
-        -pull read down again if other data expected, go to Repeat.
-        End of transmission:
-        -RD to high again, same timing than during transmission
-        -CS to high, can be done straight after RD to high
+        - RD to HIGH, must be high for at least 2ns for next data.
+        INFO: Data is valid for 5ns after rising edge
+        - timer to call next_RD()
+        * if all channels read: go to stopRead()
+*    next_RD():
+        -pull read down again if other data expected
+        - starting timer to call readData() again
+*    stopRead();
+        -CS to high (RD is already high from readData())
         -BUS goes to tree-state after max 10ns.
         -On ADS8528: 0 ns between CS rising edge to next CONVST rising edge
         ! min time between 2 CONVST rising edges: 240ns
@@ -187,11 +196,12 @@ namespace adc
         // gpioInterrupt::setUpGpioISR(beginRead); //? why doing it every time and not in an init() function
         // so far for testing:
         Serial.println("Delaying (conversion)");
-        delay(2000);
+        delay(2000); // will be triggered by an interupt in final implementation
         beginRead();
     }
 
     // resetting channels_processed and CONVST, continues with readData
+    // updated version
     void beginRead()
     {
         Serial.println("beginRead()");
@@ -199,6 +209,7 @@ namespace adc
         // PIT0 is continuing to run, will trigger next call in (250?) clockcycles
 
         channels_processed = 0;
+        // ! temp
         testing_value_par = 1;
         // no need to have CONVST high now
         gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
@@ -209,7 +220,7 @@ namespace adc
         periodicTimer::startPeriodic(periodicTimer::PIT_1); // will call readData()
     }
 
-    // reads the data on the parallel bus, when beginRead() was called
+    // reads the data on the parallel bus, when beginRead() was called (updated)
     void readData()
     {
         Serial.print("readData, channel nb : ");
@@ -239,6 +250,7 @@ namespace adc
         }
     }
 
+    // updated version
     void next_RD()
     {
         Serial.println("next_RD");
