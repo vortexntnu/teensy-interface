@@ -74,7 +74,7 @@ Repeat:
 
 namespace adc
 {
-#define TESTING
+
 #define DB_MASK 0xFFFF0000 // bit 16 to 31 of port 1 are the parallel interface
 #define DB_REG_SHIFT 16    // values in GPIO reg must be shifted by 16
     uint8_t channels_processed;
@@ -131,8 +131,8 @@ namespace adc
         gpio::configPin(RESET, 1, RESET_GPIO_PORT_NORMAL);
         gpio::write_pin(RESET, 0, RESET_GPIO_PORT_NORMAL);
 
-        // configuring parallel interface, as input
 #ifndef TESTING
+        // configuring parallel interface, as input
         gpio::configPort(DB_GPIO_PORT_NORMAL, 0x00000000, DB_MASK);
 #endif
 #ifdef TESTING
@@ -141,8 +141,12 @@ namespace adc
 #endif
 
         // defining value of register
-        // uint32_t ADC_reg_config;
-        // config(ADC_reg_config);
+        uint32_t ADC_reg_config;
+        // WRITE_EN needs to be set to update REG, internal clock, BUSY mode active high,
+        // powering off channel D because we don't need it, internal ref because nothing external connected, reference voltage to 2.5V //? unsure about that ?
+        ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC);
+        config(ADC_reg_config);
+
         setup();
     }
 
@@ -151,10 +155,10 @@ namespace adc
     {
         clock::setup(); /// the clockfrequency needs to be defined somewhere, does it need to be called also if adc is not init()
         // gpt::setup();
-        periodicTimer::setup();
+        PIT::setup();
         // gpioInterrupt::setup(); //NEEDS TO BE FIXED
-        periodicTimer::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000), periodicTimer::PIT_1);
-        periodicTimer::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000), periodicTimer::PIT_2);
+        PIT::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000), PIT::PIT_1);
+        PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000), PIT::PIT_2);
         // ! connect beginRead() to BUSY/INT interrupt
     }
 
@@ -163,9 +167,9 @@ namespace adc
     {
         Serial.println("Starting conversion");
         // ? do it in one call?
-        periodicTimer::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000 * 15), periodicTimer::PIT_0);
+        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000 * 15), PIT::PIT_0);
 
-        periodicTimer::startPeriodic(periodicTimer::PIT_0); // will call triggerConversion every 250 clockcycles
+        PIT::startPeriodic(PIT::PIT_0); // will call triggerConversion every 250 clockcycles
     }
 
     void stopConversion()
@@ -173,7 +177,7 @@ namespace adc
         Serial.println("Stopping conversion and resetting pins");
         for (uint8_t i = 0; i < 3; i++)
         {
-            periodicTimer::stopPeriodic(i);
+            PIT::stopPeriodic(i);
         }
         gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
         gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
@@ -188,16 +192,18 @@ namespace adc
     /// @brief function to start the conversion of data from ADC. once ADC is ready to output data, GpioISR will be triggered by the BUSY pin
     void triggerConversion()
     {
+        Serial.println("trigger conv");
         // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
         gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
 
         // ! enable interrupt on BUSY/INT pin
         // ! function to be called :
         // gpioInterrupt::setUpGpioISR(beginRead); //? why doing it every time and not in an init() function
+        attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), beginRead, FALLING);
         // so far for testing:
-        Serial.println("Delaying (conversion)");
-        delay(2000); // will be triggered by an interupt in final implementation
-        beginRead();
+        // Serial.println("Delaying (conversion)");
+        // delay(2000); // will be triggered by an interupt in final implementation
+        // beginRead();
     }
 
     // resetting channels_processed and CONVST, continues with readData
@@ -206,18 +212,20 @@ namespace adc
     {
         Serial.println("beginRead()");
         // ! disable interrupts from BUSY/INT, will be enabled again by next triggerConvst()
+        detachInterrupt(BUSYINT_ARDUINO_PIN);
         // PIT0 is continuing to run, will trigger next call in (250?) clockcycles
 
         channels_processed = 0;
-        // ! temp
+#ifdef TESTING
         testing_value_par = 1;
+#endif
         // no need to have CONVST high now
         gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
 
         gpio::write_pin(_CS, 0, _CS_GPIO_PORT_NORMAL);
         gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
         // should take at least 20ns to trigger timer
-        periodicTimer::startPeriodic(periodicTimer::PIT_1); // will call readData()
+        PIT::startPeriodic(PIT::PIT_1); // will call readData()
     }
 
     // reads the data on the parallel bus, when beginRead() was called (updated)
@@ -226,7 +234,7 @@ namespace adc
         Serial.print("readData, channel nb : ");
         Serial.println(channels_processed);
         // disabling timer, so far it is not a periodic timer
-        periodicTimer::stopPeriodic(periodicTimer::PIT_1);
+        PIT::stopPeriodic(PIT::PIT_1);
 
 #ifndef TESTING
         sampleData[channels_processed] = read_ADC_par(); /// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
@@ -246,7 +254,7 @@ namespace adc
         }
         else
         {
-            periodicTimer::startPeriodic(periodicTimer::PIT_2);
+            PIT::startPeriodic(PIT::PIT_2);
         }
     }
 
@@ -254,10 +262,10 @@ namespace adc
     void next_RD()
     {
         Serial.println("next_RD");
-        periodicTimer::stopPeriodic(periodicTimer::PIT_2);
+        PIT::stopPeriodic(PIT::PIT_2);
         gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
         // will call readData
-        periodicTimer::startPeriodic(periodicTimer::PIT_1);
+        PIT::startPeriodic(PIT::PIT_1);
     }
 
     // turning of
@@ -269,6 +277,7 @@ namespace adc
     }
 
     /// is trying to to the same than readData but without interrupt, back to back. Written by two different persons
+    // ! backup plan!!!!
     void readLoop()
     {
         for (int i = 0; i < 5; i++)
@@ -342,5 +351,59 @@ namespace adc
     uint16_t read_ADC_par()
     {
         return gpio::read_port(DB_GPIO_PORT_NORMAL) >> DB_REG_SHIFT;
+    }
+
+    void setting_up_DMA()
+    {
+        // // Set up 3 timers to create waveform timing events
+        // static uint16_t comp1load[3];
+        // comp1load[0] = (uint16_t)((float)F_BUS_ACTUAL * (float)TH_TL);
+        // comp1load[1] = (uint16_t)((float)F_BUS_ACTUAL * (float)T0H);
+        // comp1load[2] = (uint16_t)((float)F_BUS_ACTUAL * (float)T1H);
+        // if ((params & 0xC0) == WS2811_400kHz)
+        // {
+        //     comp1load[0] *= 2;
+        //     comp1load[1] *= 2;
+        //     comp1load[2] *= 2;
+        // }
+        // TMR4_ENBL &= ~7; // enables the first 3 channels of timer 4
+        // // OEN: OFLAG is driven on external pin, FORCE: val is forced to OFLAG output,
+        // // MAster mode to reset other channels when this one is resetting
+        // TMR4_SCTRL0 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE | TMR_SCTRL_MSTR;
+        // TMR4_CSCTRL0 = TMR_CSCTRL_CL1(1) | TMR_CSCTRL_TCF1EN;
+        // TMR4_CNTR0 = 0;              // setting timer to 0
+        // TMR4_LOAD0 = 0;              // value to load when timer reaches compare (or overflow?)
+        // TMR4_COMP10 = comp1load[0];  // compare value when counting up
+        // TMR4_CMPLD10 = comp1load[0]; // preload for COMP10
+        // // CM (count mode): counting rising edges of primary source, PCS (Primary count source): IP bus clock with prescaler 1, LENGHT: counts until rollover, OUTMODE: Toggle output on compare
+        // TMR4_CTRL0 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE(3);
+
+        // TMR4_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
+        // TMR4_CNTR1 = 0;
+        // TMR4_LOAD1 = 0;
+        // TMR4_COMP11 = comp1load[1]; // T0H
+        // TMR4_CMPLD11 = comp1load[1];
+        // // COINIT: reinitialization when channel 0 is resetting
+        // TMR4_CTRL1 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
+
+        // TMR4_SCTRL2 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
+        // TMR4_CNTR2 = 0;
+        // TMR4_LOAD2 = 0;
+        // TMR4_COMP12 = comp1load[2]; // T1H
+        // TMR4_CMPLD12 = comp1load[2];
+        // TMR4_CTRL2 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
+
+        // // route the timer outputs through XBAR to edge trigger DMA request
+
+        // CCM_CCGR2 |= CCM_CCGR2_XBAR1(CCM_CCGR_ON); // enabling clock (probably)
+        // xbar_connect(XBARA1_IN_QTIMER4_TIMER0, XBARA1_OUT_DMA_CH_MUX_REQ30);
+        // xbar_connect(XBARA1_IN_QTIMER4_TIMER1, XBARA1_OUT_DMA_CH_MUX_REQ31);
+        // xbar_connect(XBARA1_IN_QTIMER4_TIMER2, XBARA1_OUT_DMA_CH_MUX_REQ94);
+        // // don't know, p. 3271
+        // XBARA1_CTRL0 = XBARA_CTRL_STS1 | XBARA_CTRL_EDGE1(3) | XBARA_CTRL_DEN1 |
+        //                XBARA_CTRL_STS0 | XBARA_CTRL_EDGE0(3) | XBARA_CTRL_DEN0;
+        // XBARA1_CTRL1 = XBARA_CTRL_STS0 | XBARA_CTRL_EDGE0(3) | XBARA_CTRL_DEN0;
+
+        // // --------------------- DMA channels ----------------------------------
     }
 }; // adc

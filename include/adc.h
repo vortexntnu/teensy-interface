@@ -39,6 +39,7 @@ namespace adc
     const int ASLEEP = CORE_PIN34_BIT; // GPIO 2.29
 #define ASLEEP_GPIO_PORT_NORMAL IMXRT_GPIO2
     const int BUSYINT = CORE_PIN35_BIT; // GPIO 2.28
+#define BUSYINT_ARDUINO_PIN 28          // pin number to use for built-in arduino libraries
 #define BUSYINT_GPIO_PORT_NORMAL IMXRT_GPIO2
     const int RANGE = CORE_PIN36_BIT; // GPIO 2.18
     const int XCLK = CORE_PIN36_BIT;  // same pin as RANGE, depending if HW or SW
@@ -86,6 +87,28 @@ namespace adc
 // the port of the DB pins is GPIO port 1 (DMA needs the slower ports)
 #define DB_GPIO_PORT_NORMAL IMXRT_GPIO1
 
+    // Timing definitions
+
+    // Configuration of the ADC control register
+#define CONFIG_WRITE_EN 31
+#define CONFIG_READ_EN 30
+#define CONFIG_CLKSEL 29
+#define CONFIG_CLKOUT 28
+#define CONFIG_BUSYINT 27
+#define CONFIG_BUSY_POL 26
+#define CONFIG_STBY 25
+#define CONFIG_RANGE_A 24
+#define CONFIG_RANGE_B 23
+#define CONFIG_PD_B 22
+#define CONFIG_RANGE_C 21
+#define CONFIG__PD_C 20
+#define CONFIG_RANGE_D 19
+#define CONFIG_PD_D 18
+#define CONFIG_REFEN 15
+#define CONFIG_REFBUF 14
+#define CONFIG_VREF 13
+#define CONFIG_REFDAC 0
+
     // Interrupt Signals.
     /* static uint16_t ChannelA0Data;
     static uint16_t ChannelA1Data;
@@ -120,4 +143,6 @@ namespace adc
     void readLoop();
 
     void transferData(); // transfer data to ringbuffers.
+
+    void setting_up_DMA();
 };

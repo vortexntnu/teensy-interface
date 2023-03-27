@@ -9,6 +9,8 @@
 
 #include "TimerOne.h"
 
+#include "DMAChannel.h"
+
 void print_dummy_1();
 void print_dummy_2();
 void print_dummy_3();
@@ -17,17 +19,17 @@ void print_dummy_4();
 void testing_timers_basic()
 {
     clock::setup();
-    periodicTimer::setup();
+    PIT::setup();
 
-    periodicTimer::setUpPeriodicISR2(print_dummy_1);
-    periodicTimer::setUpPeriodicISR3(print_dummy_2);
+    PIT::setUpPeriodicISR2(print_dummy_1);
+    PIT::setUpPeriodicISR3(print_dummy_2);
     delay(3000);
 
     while (42)
     {
         delay(1000);
-        periodicTimer::startPeriodic2(0xFFFFFFF);
-        periodicTimer::startPeriodic3(0xFFFFFF);
+        PIT::startPeriodic2(0xFFFFFFF);
+        PIT::startPeriodic3(0xFFFFFF);
 
         for (uint8_t i = 0; i < 10; i++)
         {
@@ -35,8 +37,8 @@ void testing_timers_basic()
             Serial.println("waited 1s");
         }
 
-        periodicTimer::stopPeriodic2();
-        periodicTimer::stopPeriodic3();
+        PIT::stopPeriodic2();
+        PIT::stopPeriodic3();
         Serial.println("timers disabled");
         delay(4000);
         Serial.println("waited 4 seconds, timers in 1s");
@@ -46,28 +48,28 @@ void testing_timers_basic()
 void testing_timers_general()
 {
     clock::setup();
-    periodicTimer::setup();
+    PIT::setup();
     Serial.println("Be prepared, start in 2s");
     delay(2000);
     Serial.println("Initialisation and starting PIT0, dummy3");
-    periodicTimer::startPeriodic(print_dummy_3, 0xFFFFFFF, periodicTimer::PIT_0);
+    PIT::startPeriodic(print_dummy_3, 0xFFFFFFF, PIT::PIT_0);
     delay(8500);
-    periodicTimer::stopPeriodic(periodicTimer::PIT_0);
+    PIT::stopPeriodic(PIT::PIT_0);
     Serial.println("PIT0 stopped");
     delay(5000);
 
-    periodicTimer::setUpPeriodicISR(print_dummy_1, periodicTimer::PIT_0);
-    periodicTimer::setUpPeriodicISR(print_dummy_2, periodicTimer::PIT_1);
-    periodicTimer::setUpPeriodicISR(print_dummy_3, periodicTimer::PIT_2);
-    periodicTimer::setUpPeriodicISR(print_dummy_4, periodicTimer::PIT_3);
+    PIT::setUpPeriodicISR(print_dummy_1, PIT::PIT_0);
+    PIT::setUpPeriodicISR(print_dummy_2, PIT::PIT_1);
+    PIT::setUpPeriodicISR(print_dummy_3, PIT::PIT_2);
+    PIT::setUpPeriodicISR(print_dummy_4, PIT::PIT_3);
 
     Serial.println("Setting up timers with ISR functions and starting them");
     delay(3000);
 
-    periodicTimer::startPeriodic(clock::get_clockcycles_micro(1000), periodicTimer::PIT_0);
-    periodicTimer::startPeriodic(clock::get_clockcycles_micro(1500), periodicTimer::PIT_1);
-    periodicTimer::startPeriodic(clock::get_clockcycles_micro(2000), periodicTimer::PIT_2);
-    periodicTimer::startPeriodic(clock::get_clockcycles_micro(3000), periodicTimer::PIT_3);
+    PIT::startPeriodic(clock::get_clockcycles_micro(1000), PIT::PIT_0);
+    PIT::startPeriodic(clock::get_clockcycles_micro(1500), PIT::PIT_1);
+    PIT::startPeriodic(clock::get_clockcycles_micro(2000), PIT::PIT_2);
+    PIT::startPeriodic(clock::get_clockcycles_micro(3000), PIT::PIT_3);
 
     while (42)
     {
@@ -79,7 +81,7 @@ void testing_timers_general()
 
         for (uint8_t i = 0; i <= 3; i++)
         {
-            periodicTimer::stopPeriodic(i);
+            PIT::stopPeriodic(i);
         }
         Serial.println("timers disabled");
         delay(4000);
@@ -89,7 +91,7 @@ void testing_timers_general()
         for (uint8_t i = 0; i <= 3; i++)
         {
             // checking the sub function
-            periodicTimer::startPeriodic(i);
+            PIT::startPeriodic(i);
         }
     }
 }
@@ -155,7 +157,14 @@ void blinking_led()
 void test_par_interface()
 {
     Serial.println("Starting parallel bus interface test with LEDs");
+
+    // going back to normal speed ports for the pins used
+    // default is GPIO ports 6-9 but we want the normal speed ports, at least for the parallel interface
     // because DMA doesn't work with the fast ports.
+    gpio::set_normal_GPIO(1 << adc::_WR, _WR_GPIO_PORT_NORMAL);
+    gpio::set_normal_GPIO(1 << adc::_RD, _RD_GPIO_PORT_NORMAL);
+    gpio::set_normal_GPIO(1 << adc::_CS, _CS_GPIO_PORT_NORMAL);
+    gpio::set_normal_GPIO(0xFFFF0000, DB_GPIO_PORT_NORMAL);
 
     // configure _WR and _CS pin as output (on port 4)
     _WR_GPIO_PORT_NORMAL.GDIR |= (1 << adc::_WR);
@@ -211,13 +220,77 @@ void test_ADC_timer()
 {
     adc::init();
 
-    gpio::configPin(adc::HWSW, 1, HWSW_GPIO_PORT_NORMAL);
-    gpio::write_pin(adc::HWSW, 1, HWSW_GPIO_PORT_NORMAL);
-
     adc::startConversion();
     Serial.println("Conversion started");
 
     delay(60000);
     adc::stopConversion();
     Serial.println("Conversion stopped");
+}
+
+/*
+    define an address in memory, write a value
+    write another value at a different location
+    Set up a DMA channel that:
+    - transfers the from second address to first
+    - check if it worked
+    Then do a repeated DMA, change the source value to see if it get's updated
+    - level 3: DMA triggered from timer (--> see OctoWS library)
+*/
+// creating a DMA channel, first free channel is chosen
+DMAChannel channel_basic = DMAChannel();
+
+void ISR_timer_basic_DMA();
+void test_basic_DMA()
+{
+    PIT::setup();
+
+    // testing variables
+    uint32_t source[2] = {0b100000001, 517};
+    uint32_t destination[2] = {0, 0};
+
+    // configuring the channel
+    channel_basic.sourceBuffer(source, 2);
+    // channel_basic.TCD->SADDR = &source;
+    channel_basic.destinationBuffer(destination, 2);
+    // channel_basic.TCD->DADDR = &destination;
+    // ! this is done is the buffer setting function just above
+    // channel_basic.transferSize(4);  // variable is 32bits, so 4 bytes
+    // channel_basic.transferCount(4); // only once
+
+    // setting up timer to trigger manually DMA, every 4 seconds
+    PIT::setUpPeriodicISR(ISR_timer_basic_DMA, clock::get_clockcycles_micro(4000000), PIT::PIT_0);
+    Serial.println("Value should be overwritten to every 4 seconds : ");
+    Serial.print(source[0]);
+    PIT::startPeriodic(PIT::PIT_0);
+    delay(200);
+    // loop is taking 100% of CPU
+    while (42)
+    {
+        Serial.print("Value of variable (default 0) : ");
+        Serial.print(destination[0]);
+        Serial.print(" , ");
+        Serial.println(destination[1]);
+        // setting to 0 to see if DMA is triggered every time timer triggers
+        destination[0] = 0;
+        destination[1] = 0;
+        delay(500);
+    }
+}
+
+void ISR_timer_basic_DMA()
+{
+    channel_basic.triggerManual();
+}
+
+void myInterrupt()
+{
+    Serial.println("My interrupt");
+}
+
+// testing the builtin interrupt handler
+void test_interupt_arduino()
+{
+    // the Busy pin is number 28
+    attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), myInterrupt, FALLING);
 }

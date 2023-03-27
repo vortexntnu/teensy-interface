@@ -5,7 +5,7 @@
 // ! It is possible to give priorities to interrupts in case the timer interrrupts are critical
 // see in intervalTimer.cpp (library for PIT)
 // #include <IntervalTimer.h>
-namespace periodicTimer
+namespace PIT
 {
     /// will be changed later, this keeps it generic
     static void dummyISR(void)

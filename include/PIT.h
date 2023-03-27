@@ -10,7 +10,7 @@
 #include "Arduino.h"
 #endif
 
-namespace periodicTimer
+namespace PIT
 {
 
     typedef void (*void_function_ptr)(void);
@@ -24,6 +24,7 @@ namespace periodicTimer
 
     void setup();
 
+    // from team 2021-2022
     ////void ISR();     /// should not be called from outside!!
     void setUpPeriodicISR3(void_function_ptr function);
     void setUpPeriodicISR2(void_function_ptr function);
@@ -40,4 +41,4 @@ namespace periodicTimer
     void startPeriodic(uint32_t clockcycles, PIT_channels PIT_number, uint8_t chained = 0);
     void startPeriodic(PIT_channels PIT_number, uint8_t chained = 0);
     void stopPeriodic(PIT_channels PIT_number);
-} // periodicTimer
+} // PIT
