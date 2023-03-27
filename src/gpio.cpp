@@ -33,6 +33,45 @@ namespace gpio
         // GPIO_n.G = reg_value & mask;
         // GPIO_n.DR_CLEAR = ~reg_value & mask; // flipping bits to set the bits that needs to be cleared
     }
+    // see page 375 for register description
+    void set_normal_GPIO(uint32_t mask, IMXRT_GPIO_t &GPIO_n)
+    {
+        if (&GPIO_n == IMXRT_GPIO1_ADDRESS || &GPIO_n == IMXRT_GPIO6_ADDRESS)
+        {
+            IOMUXC_GPR_GPR26 &= ~mask; // 0xFFFFFFFF to use fast GPIO
+        }
+        else if (&GPIO_n == IMXRT_GPIO2_ADDRESS || &GPIO_n == IMXRT_GPIO7_ADDRESS)
+        {
+            IOMUXC_GPR_GPR27 &= ~mask; // 0xFFFFFFFF to use fast GPIO
+        }
+        else if (&GPIO_n == IMXRT_GPIO3_ADDRESS || &GPIO_n == IMXRT_GPIO8_ADDRESS)
+        {
+            IOMUXC_GPR_GPR28 &= ~mask; // 0xFFFFFFFF to use fast GPIO
+        }
+        else if (&GPIO_n == IMXRT_GPIO4_ADDRESS || &GPIO_n == IMXRT_GPIO9_ADDRESS)
+        {
+            IOMUXC_GPR_GPR29 &= ~mask; // 0xFFFFFFFF to use fast GPIO
+        }
+    }
+    void set_fast_GPIO(uint32_t mask, IMXRT_GPIO_t &GPIO_n)
+    {
+        if (&GPIO_n == IMXRT_GPIO1_ADDRESS || &GPIO_n == IMXRT_GPIO6_ADDRESS)
+        {
+            IOMUXC_GPR_GPR26 |= mask; // 0xFFFFFFFF to use fast GPIO
+        }
+        else if (&GPIO_n == IMXRT_GPIO2_ADDRESS || &GPIO_n == IMXRT_GPIO7_ADDRESS)
+        {
+            IOMUXC_GPR_GPR27 |= mask; // 0xFFFFFFFF to use fast GPIO
+        }
+        else if (&GPIO_n == IMXRT_GPIO3_ADDRESS || &GPIO_n == IMXRT_GPIO8_ADDRESS)
+        {
+            IOMUXC_GPR_GPR28 |= mask; // 0xFFFFFFFF to use fast GPIO
+        }
+        else if (&GPIO_n == IMXRT_GPIO4_ADDRESS || &GPIO_n == IMXRT_GPIO9_ADDRESS)
+        {
+            IOMUXC_GPR_GPR29 |= mask; // 0xFFFFFFFF to use fast GPIO
+        }
+    }
 
     // info: inline: kinda like a macro, replace the fonction call with directly the
     // code. saves time to call, because the call takes longer than the actual code

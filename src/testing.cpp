@@ -155,15 +155,11 @@ void blinking_led()
 void test_par_interface()
 {
     Serial.println("Starting parallel bus interface test with LEDs");
-    // going back to normal GPIO mode (port 1-5)
-    IOMUXC_GPR_GPR26 = 0x0; // 0xFFFFFFFF to use fast GPIO
-    IOMUXC_GPR_GPR27 = 0x0; // each bit can be configured normal or fast
-    IOMUXC_GPR_GPR28 = 0x0;
-    IOMUXC_GPR_GPR29 = 0x0;
+    // because DMA doesn't work with the fast ports.
 
     // configure _WR and _CS pin as output (on port 4)
-    IMXRT_GPIO4.GDIR |= (1 << adc::_WR);
-    IMXRT_GPIO2.DR_SET |= (1 << adc::_WR);
+    _WR_GPIO_PORT_NORMAL.GDIR |= (1 << adc::_WR);
+    _WR_GPIO_PORT_NORMAL.DR_SET |= (1 << adc::_WR);
 
     IMXRT_GPIO2.GDIR |= (1 << adc::_CS);
     gpio::write_pin(adc::_CS, 1, IMXRT_GPIO2);
@@ -190,13 +186,13 @@ void test_par_interface()
         for (uint16_t i = 0; i < 256; i++)
         {
             // WR to low, we write to ADC
-            gpio::write_pin(adc::_WR, 0, IMXRT_GPIO4);
+            gpio::write_pin(adc::_WR, 0, _WR_GPIO_PORT_NORMAL);
             delay(30);
             // putting value on parallel bus
             gpio::write_port(i << 16, DB_GPIO_PORT_NORMAL, 0xFFFF0000);
             delay(300);
             // finished with this data, WR high again
-            gpio::write_pin(adc::_WR, 1, IMXRT_GPIO4);
+            gpio::write_pin(adc::_WR, 1, _WR_GPIO_PORT_NORMAL);
             // delay to be able to debug it
             delay(100);
         }
