@@ -230,4 +230,4 @@ namespace PIT
         PIT[PIT_number]->TCTRL &= ~(PIT_TCTRL_TIE | PIT_TCTRL_TEN);
     }
 
-} // namespace timer
+} // namespace PIT

@@ -11,4 +11,6 @@ void test_ADC_timer();
 
 void test_basic_DMA();
 
+void test_complex_DMA();
+
 void test_interupt_arduino();

@@ -3,14 +3,17 @@
 
 #include "DMAChannel.h"
 
-#define TESTING
-
 #include "gpio.h"
 #include "PIT.h"
 #include "gpioInterrupt.h"
 #include "GPT.h"
 #include "clock.h"
 #include "adc.h"
+
+#include "OctoWS2811.h"
+// https://www.pjrc.com/teensy/td_libs_OctoWS2811.html
+
+#define TESTING // comment/uncomment depending if you use the testing functions
 
 #ifdef TESTING
 #include "testing.h" // all the test function should be here
@@ -85,9 +88,12 @@ int main()
     // blinking_led();
     // testing_timers_general(); // in test file
     // testing_timers_basic();
-    //  periodicTimer::startPeriodic(3000, periodicTimer::PIT_1);
+    //  PIT::startPeriodic(3000, PIT::PIT_1);
     // test_par_interface();
-    test_ADC_timer();
+    // test_ADC_timer();
+    // test_basic_DMA();
+    // test_interupt_arduino();
+    test_complex_DMA();
 #endif
 
     // State state = State::IDLE;

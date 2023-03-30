@@ -246,8 +246,9 @@ void test_basic_DMA()
     PIT::setup();
 
     // testing variables
-    uint32_t source[2] = {0b100000001, 517};
-    uint32_t destination[2] = {0, 0};
+    // works only with 8bit, 16 and 32 don't work as expected
+    volatile uint8_t source[2] = {0b1000001, 17};
+    volatile uint8_t destination[2] = {0, 0};
 
     // configuring the channel
     channel_basic.sourceBuffer(source, 2);
@@ -260,8 +261,8 @@ void test_basic_DMA()
 
     // setting up timer to trigger manually DMA, every 4 seconds
     PIT::setUpPeriodicISR(ISR_timer_basic_DMA, clock::get_clockcycles_micro(4000000), PIT::PIT_0);
-    Serial.println("Value should be overwritten to every 4 seconds : ");
-    Serial.print(source[0]);
+    Serial.print("Value should be overwritten to every 4 seconds : ");
+    Serial.println(source[0]);
     PIT::startPeriodic(PIT::PIT_0);
     delay(200);
     // loop is taking 100% of CPU
@@ -280,7 +281,70 @@ void test_basic_DMA()
 
 void ISR_timer_basic_DMA()
 {
+    Serial.println("int");
     channel_basic.triggerManual();
+}
+
+DMAChannel dma1 = DMAChannel();
+DMAChannel dma2 = DMAChannel();
+DMAChannel dma3 = DMAChannel();
+
+void test_complex_DMA()
+{
+    // source variables
+    uint8_t a, b, c;
+    // destination variables
+    uint8_t d, e, f;
+    a = 1;
+    b = 2;
+    c = 3;
+    d = 0;
+    e = 0;
+    f = 0;
+
+    // works only with 8bit, 16 and 32 don't work as expected
+    volatile uint8_t source[1] = {a};
+    volatile uint8_t destination[1] = {d};
+
+    // configuring the channel
+    dma1.sourceBuffer(source, 1);
+    // channel_basic.TCD->SADDR = &source;
+    dma1.destinationBuffer(destination, 1);
+
+    // is setting up timers and linking output to XBAR, tjhat can be used for DMA
+    adc::setting_up_timers_DMA();
+    // dma1.source(a);
+    // dma1.destination(d);
+    //  dma1.TCD->SADDR = bitmask;
+    //  dma1.TCD->SOFF = 8;
+    //  dma1.TCD->ATTR = DMA_TCD_ATTR_SSIZE(3) | DMA_TCD_ATTR_SMOD(4) | DMA_TCD_ATTR_DSIZE(2);
+    //  dma1.TCD->NBYTES_MLOFFYES = DMA_TCD_NBYTES_DMLOE |
+    //                              DMA_TCD_NBYTES_MLOFFYES_MLOFF(-65536) |
+    //                              DMA_TCD_NBYTES_MLOFFYES_NBYTES(16);
+    //  dma1.TCD->SLAST = 0;
+    //  dma1.TCD->DADDR = &GPIO1_DR_SET;
+    //  dma1.TCD->DOFF = 16384;
+    //  dma1.TCD->CITER_ELINKNO = numbytes * 8;
+    //  dma1.TCD->DLASTSGA = -65536;
+    //  dma1.TCD->BITER_ELINKNO = numbytes * 8;
+    //  dma1.TCD->CSR = DMA_TCD_CSR_DREQ;
+    //  table p.54
+    dma1.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_0);
+    // starting timers
+    dma1.enable();
+    TMR4_ENBL |= 7;
+
+    // checking if d is changed:
+    while (42)
+    {
+        Serial.print("value of d : ");
+        Serial.println(destination[0]);
+        destination[0] = 0;
+        Serial.print("value of d : ");
+        Serial.println(destination[0]);
+        // dma1.triggerManual();
+        delay(200);
+    }
 }
 
 void myInterrupt()

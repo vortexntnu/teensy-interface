@@ -4,6 +4,10 @@
 #include "clock.h"
 #include "gpio.h"
 #include "gpioInterrupt.h"
+#include "DMAChannel.h"
+#include "Arduino.h"
+
+extern "C" void xbar_connect(unsigned int input, unsigned int output); // in pwm.c
 
 /// How it should work (is planned in the code) at the moment:
 // ! old version, only here to have a trace off what has been attempted
@@ -145,7 +149,7 @@ namespace adc
         // WRITE_EN needs to be set to update REG, internal clock, BUSY mode active high,
         // powering off channel D because we don't need it, internal ref because nothing external connected, reference voltage to 2.5V //? unsure about that ?
         ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC);
-        config(ADC_reg_config);
+        // config(ADC_reg_config);
 
         setup();
     }
@@ -353,57 +357,119 @@ namespace adc
         return gpio::read_port(DB_GPIO_PORT_NORMAL) >> DB_REG_SHIFT;
     }
 
-    void setting_up_DMA()
+    void setting_up_timers_DMA()
     {
-        // // Set up 3 timers to create waveform timing events
-        // static uint16_t comp1load[3];
-        // comp1load[0] = (uint16_t)((float)F_BUS_ACTUAL * (float)TH_TL);
-        // comp1load[1] = (uint16_t)((float)F_BUS_ACTUAL * (float)T0H);
-        // comp1load[2] = (uint16_t)((float)F_BUS_ACTUAL * (float)T1H);
-        // if ((params & 0xC0) == WS2811_400kHz)
-        // {
-        //     comp1load[0] *= 2;
-        //     comp1load[1] *= 2;
-        //     comp1load[2] *= 2;
-        // }
-        // TMR4_ENBL &= ~7; // enables the first 3 channels of timer 4
-        // // OEN: OFLAG is driven on external pin, FORCE: val is forced to OFLAG output,
-        // // MAster mode to reset other channels when this one is resetting
-        // TMR4_SCTRL0 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE | TMR_SCTRL_MSTR;
-        // TMR4_CSCTRL0 = TMR_CSCTRL_CL1(1) | TMR_CSCTRL_TCF1EN;
-        // TMR4_CNTR0 = 0;              // setting timer to 0
-        // TMR4_LOAD0 = 0;              // value to load when timer reaches compare (or overflow?)
-        // TMR4_COMP10 = comp1load[0];  // compare value when counting up
-        // TMR4_CMPLD10 = comp1load[0]; // preload for COMP10
-        // // CM (count mode): counting rising edges of primary source, PCS (Primary count source): IP bus clock with prescaler 1, LENGHT: counts until rollover, OUTMODE: Toggle output on compare
-        // TMR4_CTRL0 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE(3);
+        // max value for counter: 0xFFFF
+        // Set up 3 timers to create waveform timing events
+        static uint16_t comp1load[3];
+        // ! need to check if F_BUS is the right one
+        // ! values only for testing
+        comp1load[0] = 200; //(uint16_t)((float)F_BUS_ACTUAL * (float)T_RDH);
+        comp1load[1] = (uint16_t)((float)F_BUS_ACTUAL * (float)T_RDH);
+        comp1load[2] = (uint16_t)((float)F_BUS_ACTUAL * (float)T_RDH);
+        // in the Octo library:
+        // 1: THTL total duraction for one pulse
+        // 2: T0H the time after the GPIO needs to be LOW for a zero
+        // 3: T1H, 1 code ,high voltage time
 
-        // TMR4_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
-        // TMR4_CNTR1 = 0;
-        // TMR4_LOAD1 = 0;
-        // TMR4_COMP11 = comp1load[1]; // T0H
-        // TMR4_CMPLD11 = comp1load[1];
-        // // COINIT: reinitialization when channel 0 is resetting
-        // TMR4_CTRL1 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
+        TMR4_ENBL &= ~7; // disables the first 3 channels of timer 4
+        // OEN: OFLAG is driven on external pin, FORCE: val is forced to OFLAG output,
+        // MAster mode to reset other channels when this one is resetting
+        TMR4_SCTRL0 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE | TMR_SCTRL_MSTR;
+        TMR4_CSCTRL0 = TMR_CSCTRL_CL1(1) | TMR_CSCTRL_TCF1EN;
+        TMR4_CNTR0 = 0;              // setting timer to 0
+        TMR4_LOAD0 = 0;              // value to load when timer reaches compare (or overflow?)
+        TMR4_COMP10 = comp1load[0];  // compare value when counting up
+        TMR4_CMPLD10 = comp1load[0]; // preload for COMP10
+        // CM (count mode): counting rising edges of primary source, PCS (Primary count source): IP bus clock with prescaler 1, LENGHT=1: counts until compare, OUTMODE: Toggle output on compare
+        TMR4_CTRL0 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE(3);
 
-        // TMR4_SCTRL2 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
-        // TMR4_CNTR2 = 0;
-        // TMR4_LOAD2 = 0;
-        // TMR4_COMP12 = comp1load[2]; // T1H
-        // TMR4_CMPLD12 = comp1load[2];
-        // TMR4_CTRL2 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
+        // channel 1 and 2 are configured the same
+        TMR4_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
+        TMR4_CNTR1 = 0;
+        TMR4_LOAD1 = 0;
+        TMR4_COMP11 = comp1load[1]; // T0H
+        TMR4_CMPLD11 = comp1load[1];
+        // CM (count mode): counting rising edges of primary source, PCS (Primary count source): IP bus clock with prescaler 1, LENGHT=0: counts until rollover, OUTMODE: Toggle output on compare
+        // COINIT: reinitialization when channel 0 is resetting
+        TMR4_CTRL1 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
 
-        // // route the timer outputs through XBAR to edge trigger DMA request
+        TMR4_SCTRL2 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
+        TMR4_CNTR2 = 0;
+        TMR4_LOAD2 = 0;
+        TMR4_COMP12 = comp1load[2]; // T1H
+        TMR4_CMPLD12 = comp1load[2];
+        TMR4_CTRL2 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
 
-        // CCM_CCGR2 |= CCM_CCGR2_XBAR1(CCM_CCGR_ON); // enabling clock (probably)
-        // xbar_connect(XBARA1_IN_QTIMER4_TIMER0, XBARA1_OUT_DMA_CH_MUX_REQ30);
-        // xbar_connect(XBARA1_IN_QTIMER4_TIMER1, XBARA1_OUT_DMA_CH_MUX_REQ31);
-        // xbar_connect(XBARA1_IN_QTIMER4_TIMER2, XBARA1_OUT_DMA_CH_MUX_REQ94);
-        // // don't know, p. 3271
-        // XBARA1_CTRL0 = XBARA_CTRL_STS1 | XBARA_CTRL_EDGE1(3) | XBARA_CTRL_DEN1 |
-        //                XBARA_CTRL_STS0 | XBARA_CTRL_EDGE0(3) | XBARA_CTRL_DEN0;
-        // XBARA1_CTRL1 = XBARA_CTRL_STS0 | XBARA_CTRL_EDGE0(3) | XBARA_CTRL_DEN0;
+        // route the timer outputs through XBAR to edge trigger DMA request
 
-        // // --------------------- DMA channels ----------------------------------
+        CCM_CCGR2 |= CCM_CCGR2_XBAR1(CCM_CCGR_ON); // enabling clock (probably)
+        xbar_connect(XBARA1_IN_QTIMER4_TIMER0, XBARA1_OUT_DMA_CH_MUX_REQ30);
+        xbar_connect(XBARA1_IN_QTIMER4_TIMER1, XBARA1_OUT_DMA_CH_MUX_REQ31);
+        xbar_connect(XBARA1_IN_QTIMER4_TIMER2, XBARA1_OUT_DMA_CH_MUX_REQ94);
+        // don't know, p. 3271
+        XBARA1_CTRL0 = XBARA_CTRL_STS1 | XBARA_CTRL_EDGE1(3) | XBARA_CTRL_DEN1 |
+                       XBARA_CTRL_STS0 | XBARA_CTRL_EDGE0(3) | XBARA_CTRL_DEN0;
+        XBARA1_CTRL1 = XBARA_CTRL_STS0 | XBARA_CTRL_EDGE0(3) | XBARA_CTRL_DEN0;
+
+        // --------------------- DMA channels ----------------------------------
+    }
+
+    void setting_up_DMA_channels()
+    {
+        // configure DMA channels
+        // dma1.begin();
+        // dma1.sourceAddress();
+        // dma1.destinationAddress();
+        // dma1.TCD->SADDR = bitmask;
+        // dma1.TCD->SOFF = 8;
+        // dma1.TCD->ATTR = DMA_TCD_ATTR_SSIZE(3) | DMA_TCD_ATTR_SMOD(4) | DMA_TCD_ATTR_DSIZE(2);
+        // dma1.TCD->NBYTES_MLOFFYES = DMA_TCD_NBYTES_DMLOE |
+        //                             DMA_TCD_NBYTES_MLOFFYES_MLOFF(-65536) |
+        //                             DMA_TCD_NBYTES_MLOFFYES_NBYTES(16);
+        // dma1.TCD->SLAST = 0;
+        // dma1.TCD->DADDR = &GPIO1_DR_SET;
+        // dma1.TCD->DOFF = 16384;
+        // dma1.TCD->CITER_ELINKNO = numbytes * 8;
+        // dma1.TCD->DLASTSGA = -65536;
+        // dma1.TCD->BITER_ELINKNO = numbytes * 8;
+        // dma1.TCD->CSR = DMA_TCD_CSR_DREQ;
+        // table p.54
+        // dma1.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_0);
+
+        // dma2.TCD->SADDR = bitdata;
+        // dma2.TCD->SOFF = 8;
+        // dma2.TCD->ATTR = DMA_TCD_ATTR_SSIZE(3) | DMA_TCD_ATTR_DSIZE(2);
+        // dma2.TCD->NBYTES_MLOFFYES = DMA_TCD_NBYTES_DMLOE |
+        //                             DMA_TCD_NBYTES_MLOFFYES_MLOFF(-65536) |
+        //                             DMA_TCD_NBYTES_MLOFFYES_NBYTES(16);
+        // dma2.TCD->SLAST = 0;
+        // dma2.TCD->DADDR = &GPIO1_DR_CLEAR;
+        // dma2.TCD->DOFF = 16384;
+        // dma2.TCD->CITER_ELINKNO = BYTES_PER_DMA * 8;
+        // // dma2.TCD->DLASTSGA = (int32_t)(dma2next.TCD);
+        // dma2.TCD->BITER_ELINKNO = BYTES_PER_DMA * 8;
+        // dma2.TCD->CSR = 0;
+
+        // dma2.begin();
+        // dma2.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_1);
+        // dma2.attachInterrupt(isr);
+
+        // dma3.begin();
+        // dma3.TCD->SADDR = bitmask;
+        // dma3.TCD->SOFF = 8;
+        // dma3.TCD->ATTR = DMA_TCD_ATTR_SSIZE(3) | DMA_TCD_ATTR_SMOD(4) | DMA_TCD_ATTR_DSIZE(2);
+        // dma3.TCD->NBYTES_MLOFFYES = DMA_TCD_NBYTES_DMLOE |
+        //                             DMA_TCD_NBYTES_MLOFFYES_MLOFF(-65536) |
+        //                             DMA_TCD_NBYTES_MLOFFYES_NBYTES(16);
+        // dma3.TCD->SLAST = 0;
+        // dma3.TCD->DADDR = &GPIO1_DR_CLEAR;
+        // dma3.TCD->DOFF = 16384;
+        // dma3.TCD->CITER_ELINKNO = numbytes * 8;
+        // dma3.TCD->DLASTSGA = -65536;
+        // dma3.TCD->BITER_ELINKNO = numbytes * 8;
+        // dma3.TCD->CSR = DMA_TCD_CSR_DREQ | DMA_TCD_CSR_DONE;
+        // // p.58
+        // dma3.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_2);
     }
 }; // adc

@@ -109,6 +109,13 @@ namespace adc
 #define CONFIG_VREF 13
 #define CONFIG_REFDAC 0
 
+// * TIMINGS -----------
+#define T_RDL
+#define T_RDH 1e-6
+#define T_PDDO
+#define T_WRL
+#define T_WRH
+
     // Interrupt Signals.
     /* static uint16_t ChannelA0Data;
     static uint16_t ChannelA1Data;
@@ -144,5 +151,5 @@ namespace adc
 
     void transferData(); // transfer data to ringbuffers.
 
-    void setting_up_DMA();
+    void setting_up_timers_DMA();
 };
