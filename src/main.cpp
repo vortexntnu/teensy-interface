@@ -98,12 +98,32 @@ int main()
 
     adc::init();
 
-    adc::startConversion();
-    Serial.println("Conversion started");
+    Serial.println("Conversion will be started");
 
-    delay(10000);
+    adc::startConversion();
+    delayMicroseconds(MAX_SAMPLING_PERIOD * 1500 * 2);
     adc::stopConversion();
     Serial.println("Conversion stopped");
+
+    Serial.println("delta t between samples : ");
+    uint32_t previous_time_sample = adc::sampleTime.get();
+    while (!adc::sampleTime.isEmpty())
+    {
+
+        uint32_t next_time_sample = adc::sampleTime.get();
+        Serial.print(next_time_sample - previous_time_sample);
+        Serial.print(", ");
+        previous_time_sample = next_time_sample;
+    }
+    Serial.println("");
+
+    // while (!adc::ChannelA0.isEmpty())
+    for (uint16_t i = 0; i < 1500; i++)
+    {
+        Serial.print((int16_t)adc::ChannelA0.get());
+        Serial.print(", ");
+    }
+    Serial.println("");
     // State state = State::IDLE;
 
     /// Why no adc::setup() call?

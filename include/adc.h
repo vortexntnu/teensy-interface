@@ -116,6 +116,8 @@ namespace adc
 #define T_WRL 15
 #define T_WRH 10
 
+#define MAX_SAMPLING_PERIOD 10
+
     // Interrupt Signals.
     /* static uint16_t ChannelA0Data;
     static uint16_t ChannelA1Data;
@@ -124,12 +126,13 @@ namespace adc
     static uint16_t ChannelC0Data; */
 
     // Ringbuffers to store data, one for each channel (not yet implemented)
-    static RingBuffer ChannelA0;
-    static RingBuffer ChannelA1;
-    static RingBuffer ChannelB0;
-    static RingBuffer ChannelB1;
-    static RingBuffer ChannelB2;
-    static RingBuffer ChannelC0; /// not planned on using
+    extern RingBuffer ChannelA0;
+    extern RingBuffer ChannelA1;
+    extern RingBuffer ChannelB0;
+    extern RingBuffer ChannelB1;
+    extern RingBuffer ChannelC0;
+
+    extern RingBuffer_32bit sampleTime;
 
     static uint16_t sampleData[N_CHANNELS]; // array where the measurements will be stored before put into ringbuffer
 

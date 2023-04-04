@@ -86,8 +86,16 @@ namespace adc
     uint16_t testing_value_par;
 #endif
 
+    RingBuffer ChannelA0 = RingBuffer();
+    RingBuffer ChannelA1 = RingBuffer();
+    RingBuffer ChannelB0 = RingBuffer();
+    RingBuffer ChannelB1 = RingBuffer();
+    RingBuffer ChannelC0 = RingBuffer(); /// not planned on using
+    RingBuffer_32bit sampleTime = RingBuffer_32bit();
+
     // sets pins accordingly to value (no control signals)
-    void write_ADC_par(uint16_t value);
+    void
+    write_ADC_par(uint16_t value);
     // returns value on par-bus to ADC (no control signals)
     uint16_t read_ADC_par();
 
@@ -182,8 +190,9 @@ namespace adc
         // PIT::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_1);
         // PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_2);
 
-        PIT::setUpPeriodicISR(readData, clock::get_clockcycles_nano(T_RDL * 100), PIT::PIT_1);
-        PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_nano(T_RDH * 100), PIT::PIT_2);
+        // experimental found values
+        PIT::setUpPeriodicISR(readData, clock::get_clockcycles_nano(T_RDL * 20), PIT::PIT_1);
+        PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_nano(T_RDH * 20), PIT::PIT_2);
         // ! connect beginRead() to BUSY/INT interrupt -> is done in trigger_conversion()
     }
 
@@ -192,14 +201,20 @@ namespace adc
     {
         Serial.println("Starting conversion");
         // ? do it in one call?
-        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000 * 1), PIT::PIT_0);
+        // PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000), PIT::PIT_0);
+        // value found by trial and error.
+        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(MAX_SAMPLING_PERIOD), PIT::PIT_0);
 
         PIT::startPeriodic(PIT::PIT_0); // will call triggerConversion every 250 clockcycles
     }
 
     void stopConversion()
     {
-        for (uint8_t i = 0; i < 3; i++)
+        // no new conversion
+        PIT::stopPeriodic(0);
+        // to finish the ongoing reading
+        delayMicroseconds(100);
+        for (uint8_t i = 1; i < 3; i++)
         {
             PIT::stopPeriodic(i);
         }
@@ -218,9 +233,11 @@ namespace adc
     /// @brief function to start the conversion of data from ADC. once ADC is ready to output data, GpioISR will be triggered by the BUSY pin
     void triggerConversion()
     {
-        Serial.println("trigger conv");
+        // Serial.println("trigger conv");
         // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
         gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
+        // ringbuffer with the timestamps
+        sampleTime.insert(micros());
 
         // ! enable interrupt on BUSY/INT pin
         // ! function to be called :
@@ -294,13 +311,14 @@ namespace adc
     // turning of
     void stopRead()
     {
-        Serial.print("First chan: ");
-        Serial.println(sampleData[0]);
-        Serial.print("sec : ");
-        Serial.println(sampleData[1]);
+        // Serial.print("First chan: ");
+        // Serial.println(sampleData[0]);
+        // Serial.print("sec : ");
+        // Serial.println(sampleData[1]);
 
         // timers are already off, no need to do anything
         gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+        transferData();
     }
 
     /// is trying to to the same than readData but without interrupt, back to back. Written by two different persons
@@ -387,9 +405,12 @@ namespace adc
         static uint16_t comp1load[3];
         // ! need to check if F_BUS is the right one
         // ! values only for testing
-        comp1load[0] = 200; //(uint16_t)((float)F_BUS_ACTUAL * (float)T_RDH);
-        comp1load[1] = (uint16_t)((float)F_BUS_ACTUAL * (float)T_RDH);
-        comp1load[2] = (uint16_t)((float)F_BUS_ACTUAL * (float)T_RDH);
+        Serial.print("FBUSACTUAL : ");
+        Serial.println(F_BUS_ACTUAL);
+        comp1load[0] = 0xFFFF;
+        (uint16_t)((float)F_BUS_ACTUAL * (float)2);
+        comp1load[1] = (uint16_t)((float)F_BUS_ACTUAL * (float)1);
+        comp1load[2] = (uint16_t)((float)F_BUS_ACTUAL * (float)1);
         // in the Octo library:
         // 1: THTL total duraction for one pulse
         // 2: T0H the time after the GPIO needs to be LOW for a zero
@@ -424,6 +445,14 @@ namespace adc
         TMR4_COMP12 = comp1load[2]; // T1H
         TMR4_CMPLD12 = comp1load[2];
         TMR4_CTRL2 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
+
+        // channel 3 as primary source for the other, to be able to go up to seconds
+        TMR4_SCTRL3 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
+        TMR4_CNTR3 = 0;
+        TMR4_LOAD3 = 0;
+        TMR4_COMP13 = 0xFFFF; // T1H
+        TMR4_CMPLD13 = 0xFFFF;
+        TMR4_CTRL3 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_OUTMODE(3);
 
         // route the timer outputs through XBAR to edge trigger DMA request
 

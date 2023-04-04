@@ -1,4 +1,5 @@
 #include <memory>
+#include "Arduino.h"
 #pragma once
 
 /// @brief a ring buffer is a concept to store a maximum amount of data in a "ring". when a new value has to be savec, it will be put at the "end"
@@ -12,11 +13,14 @@ public:
     static constexpr int SIZE = 1500; /// 1500 uint16_t can be stored in 1 ringbuffer
 
     RingBuffer()
-        : start{0}, end{0}
+        : buffer(), start{0}, end{0}
     {
     }
 
-    bool isEmpty() const { return start == end; }
+    bool isEmpty()
+    {
+        return start == end;
+    }
 
     void insert(uint16_t item)
     {
@@ -31,7 +35,7 @@ public:
 
     uint16_t get()
     {
-        int item = buffer[start++];
+        uint16_t item = buffer[start++];
         start %= SIZE;
         return item;
     }
@@ -43,6 +47,51 @@ public:
 
 private:
     uint16_t buffer[SIZE];
-    uint8_t start;
-    uint8_t end;
+    uint16_t start;
+    uint16_t end;
+};
+
+class RingBuffer_32bit
+{
+
+public:
+    static constexpr int SIZE = 1500; /// 1500 uint16_t can be stored in 1 ringbuffer
+
+    RingBuffer_32bit()
+        : buffer(), start{0}, end{0}
+    {
+    }
+
+    bool isEmpty()
+    {
+        return start == end;
+    }
+
+    void insert(uint32_t item)
+    {
+        buffer[end++] = item;
+        end %= SIZE; /// when at the end of ringbuffer, just restarts at the start of the buffer
+    }
+
+    void insert(uint32_t data[])
+    {
+        /// not yet implemented??
+    }
+
+    uint32_t get()
+    {
+        uint32_t item = buffer[start++];
+        start %= SIZE;
+        return item;
+    }
+
+    uint32_t operator++(int)
+    { /// redefines the operator ++, because it is not defined by default (Ringbuffer++ would not work)
+        return this->get();
+    }
+
+private:
+    uint32_t buffer[SIZE];
+    uint16_t start;
+    uint16_t end;
 };
