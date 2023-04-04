@@ -109,11 +109,12 @@ namespace adc
 #define CONFIG_REFDAC 0
 
 // * TIMINGS -----------
-#define T_RDL
-#define T_RDH 1e-6
-#define T_PDDO
-#define T_WRL
-#define T_WRH
+// in nanoseconds !!
+#define T_RDL 20
+#define T_RDH 2
+#define T_PDDO 15 // max
+#define T_WRL 15
+#define T_WRH 10
 
     // Interrupt Signals.
     /* static uint16_t ChannelA0Data;

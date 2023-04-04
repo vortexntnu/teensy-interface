@@ -166,6 +166,8 @@ namespace adc
         // WRITE_EN needs to be set to update REG, internal clock, BUSY mode active high,
         // powering off channel D because we don't need it, internal ref because nothing external connected, reference voltage to 2.5V //? unsure about that ?
         ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC);
+        // value of channel a doubles by dividing range by 2 (works as expected)
+        // ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC) | (1 << CONFIG_RANGE_A);
         config(ADC_reg_config);
 
         setup();
@@ -177,9 +179,11 @@ namespace adc
         clock::setup(); /// the clockfrequency needs to be defined somewhere, does it need to be called also if adc is not init()
         // gpt::setup();
         PIT::setup();
-        // gpioInterrupt::setup(); //NEEDS TO BE FIXED
-        PIT::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_1);
-        PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_2);
+        // PIT::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_1);
+        // PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_2);
+
+        PIT::setUpPeriodicISR(readData, clock::get_clockcycles_nano(T_RDL * 100), PIT::PIT_1);
+        PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_nano(T_RDH * 100), PIT::PIT_2);
         // ! connect beginRead() to BUSY/INT interrupt -> is done in trigger_conversion()
     }
 
@@ -195,7 +199,6 @@ namespace adc
 
     void stopConversion()
     {
-        Serial.println("Stopping conversion and resetting pins");
         for (uint8_t i = 0; i < 3; i++)
         {
             PIT::stopPeriodic(i);
@@ -208,6 +211,8 @@ namespace adc
         gpio::write_pin(RESET, 1, RESET_GPIO_PORT_NORMAL);
         delay(1);
         gpio::write_pin(RESET, 0, RESET_GPIO_PORT_NORMAL);
+
+        Serial.println("Stopping conversion and resetting pins");
     }
 
     /// @brief function to start the conversion of data from ADC. once ADC is ready to output data, GpioISR will be triggered by the BUSY pin
