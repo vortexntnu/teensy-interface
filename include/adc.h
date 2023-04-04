@@ -34,20 +34,19 @@ namespace adc
     const int _WR = CORE_PIN5_BIT;   // same pin as REFEN, depends if PAR or SER
 #define REFEN_GPIO_PORT_NORMAL IMXRT_GPIO4
 #define _WR_GPIO_PORT_NORMAL IMXRT_GPIO4
-    const int CONVST = CORE_PIN33_BIT; // GPIO 4.07
-#define CONVST_GPIO_PORT_NORMAL IMXRT_GPIO4
-    const int ASLEEP = CORE_PIN34_BIT; // GPIO 2.29
+    const int HWSW = CORE_PIN33_BIT; // GPIO 4.07
+#define HWSW_GPIO_PORT_NORMAL IMXRT_GPIO4
+    const int CONVST = CORE_PIN34_BIT; // GPIO 2.29
+#define CONVST_GPIO_PORT_NORMAL IMXRT_GPIO2
+    const int ASLEEP = CORE_PIN35_BIT; // GPIO 2.28
 #define ASLEEP_GPIO_PORT_NORMAL IMXRT_GPIO2
-    const int BUSYINT = CORE_PIN35_BIT; // GPIO 2.28
-#define BUSYINT_ARDUINO_PIN 28          // pin number to use for built-in arduino libraries
+    const int BUSYINT = CORE_PIN36_BIT; // GPIO 2.18
 #define BUSYINT_GPIO_PORT_NORMAL IMXRT_GPIO2
-    const int RANGE = CORE_PIN36_BIT; // GPIO 2.18
-    const int XCLK = CORE_PIN36_BIT;  // same pin as RANGE, depending if HW or SW
+#define BUSYINT_ARDUINO_PIN 36        // pin number to use for built-in arduino libraries
+    const int RANGE = CORE_PIN37_BIT; // GPIO 2.19
+    const int XCLK = CORE_PIN37_BIT;  // same pin as RANGE, depending if HW or SW
 #define RANGE_GPIO_PORT_NORMAL IMXRT_GPIO2
 #define XCLK_GPIO_PORT_NORMAL IMXRT_GPIO2
-    const int HWSW = CORE_PIN37_BIT; // GPIO 2.19
-#define HWSW_GPIO_PORT_NORMAL IMXRT_GPIO2
-
     // /* this is for the accoustic board V2.0, but the pins will probably be rerouted*/
     // const int DB0 = CORE_PIN25_BIT;     // GPIO 1.13
     // const int DB1 = CORE_PIN24_BIT;     // GPIO 1.12
@@ -134,8 +133,8 @@ namespace adc
     static uint16_t sampleData[N_CHANNELS]; // array where the measurements will be stored before put into ringbuffer
 
     void init();
-    void setup();  // setup the ADC
-    void config(); // configure ADC so it's ready to send data.
+    void setup();                  // setup the ADC
+    void config(uint32_t reg_val); // configure ADC so it's ready to send data.
 
     void startConversion(); // setup periodic timer interrupts.
     void stopConversion();  // stop periodic timer interrupts

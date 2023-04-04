@@ -93,15 +93,28 @@ namespace adc
 
     void init()
     {
-        // going back to normal GPIO mode (port 1-5)
-        IOMUXC_GPR_GPR26 = 0x0; // 0xFFFFFFFF to use fast GPIO
-        IOMUXC_GPR_GPR27 = 0x0; // each bit can be configured normal or fast
-        IOMUXC_GPR_GPR28 = 0x0;
-        IOMUXC_GPR_GPR29 = 0x0;
+        // // going back to normal GPIO mode (port 1-5)
+        // IOMUXC_GPR_GPR26 = 0x0; // 0xFFFFFFFF to use fast GPIO
+        // IOMUXC_GPR_GPR27 = 0x0; // each bit can be configured normal or fast
+        // IOMUXC_GPR_GPR28 = 0x0;
+        // IOMUXC_GPR_GPR29 = 0x0;
+
+        gpio::set_normal_GPIO(1 << adc::_WR, _WR_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::_RD, _RD_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::_CS, _CS_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::BUSYINT, BUSYINT_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::HWSW, HWSW_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::PARSER, PARSER_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::XCLK, XCLK_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::STBY, STBY_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::CONVST, CONVST_GPIO_PORT_NORMAL);
+        gpio::set_normal_GPIO(1 << adc::RESET, RESET_GPIO_PORT_NORMAL);
+
+        gpio::set_normal_GPIO(0xFFFF0000, DB_GPIO_PORT_NORMAL);
 
         // BUSYINT as input
         gpio::configPin(BUSYINT, 0, BUSYINT_GPIO_PORT_NORMAL);
-        // ? configuring interrupt fot this pin, will be activated in start_conversion
+        // * no need, will be done in built-in interrupt function
 
         // _CS as output, high because interface is not enable on start-up
         gpio::configPin(_CS, 1, _CS_GPIO_PORT_NORMAL);
@@ -122,6 +135,10 @@ namespace adc
         // _RD as output, HIGH, communication inactive
         gpio::configPin(_RD, 1, _RD_GPIO_PORT_NORMAL);
         gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+
+        // _WR as output, HIGH, communication inactive
+        gpio::configPin(_WR, 1, _WR_GPIO_PORT_NORMAL);
+        gpio::write_pin(_WR, 1, _WR_GPIO_PORT_NORMAL);
 
         // _STBY as output, LOW because we use software mode (p8)
         gpio::configPin(STBY, 1, STBY_GPIO_PORT_NORMAL);
@@ -149,7 +166,7 @@ namespace adc
         // WRITE_EN needs to be set to update REG, internal clock, BUSY mode active high,
         // powering off channel D because we don't need it, internal ref because nothing external connected, reference voltage to 2.5V //? unsure about that ?
         ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC);
-        // config(ADC_reg_config);
+        config(ADC_reg_config);
 
         setup();
     }
@@ -161,9 +178,9 @@ namespace adc
         // gpt::setup();
         PIT::setup();
         // gpioInterrupt::setup(); //NEEDS TO BE FIXED
-        PIT::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000), PIT::PIT_1);
-        PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000), PIT::PIT_2);
-        // ! connect beginRead() to BUSY/INT interrupt
+        PIT::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_1);
+        PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_2);
+        // ! connect beginRead() to BUSY/INT interrupt -> is done in trigger_conversion()
     }
 
     // is starting the major loop timer, PIT0 that will trigger the conversion until stopped
@@ -171,7 +188,7 @@ namespace adc
     {
         Serial.println("Starting conversion");
         // ? do it in one call?
-        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000 * 15), PIT::PIT_0);
+        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000 * 1), PIT::PIT_0);
 
         PIT::startPeriodic(PIT::PIT_0); // will call triggerConversion every 250 clockcycles
     }
@@ -206,7 +223,7 @@ namespace adc
         attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), beginRead, FALLING);
         // so far for testing:
         // Serial.println("Delaying (conversion)");
-        // delay(2000); // will be triggered by an interupt in final implementation
+        // delay(200); // will be triggered by an interupt in final implementation
         // beginRead();
     }
 
@@ -214,7 +231,7 @@ namespace adc
     // updated version
     void beginRead()
     {
-        Serial.println("beginRead()");
+        // Serial.println("beginRead()");
         // ! disable interrupts from BUSY/INT, will be enabled again by next triggerConvst()
         detachInterrupt(BUSYINT_ARDUINO_PIN);
         // PIT0 is continuing to run, will trigger next call in (250?) clockcycles
@@ -235,8 +252,6 @@ namespace adc
     // reads the data on the parallel bus, when beginRead() was called (updated)
     void readData()
     {
-        Serial.print("readData, channel nb : ");
-        Serial.println(channels_processed);
         // disabling timer, so far it is not a periodic timer
         PIT::stopPeriodic(PIT::PIT_1);
 
@@ -265,7 +280,6 @@ namespace adc
     // updated version
     void next_RD()
     {
-        Serial.println("next_RD");
         PIT::stopPeriodic(PIT::PIT_2);
         gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
         // will call readData
@@ -275,7 +289,11 @@ namespace adc
     // turning of
     void stopRead()
     {
-        Serial.println("stopRead");
+        Serial.print("First chan: ");
+        Serial.println(sampleData[0]);
+        Serial.print("sec : ");
+        Serial.println(sampleData[1]);
+
         // timers are already off, no need to do anything
         gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
     }
@@ -382,7 +400,8 @@ namespace adc
         TMR4_COMP10 = comp1load[0];  // compare value when counting up
         TMR4_CMPLD10 = comp1load[0]; // preload for COMP10
         // CM (count mode): counting rising edges of primary source, PCS (Primary count source): IP bus clock with prescaler 1, LENGHT=1: counts until compare, OUTMODE: Toggle output on compare
-        TMR4_CTRL0 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE(3);
+        // ! for testing prescaler (it was 8 before)
+        TMR4_CTRL0 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(15) | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE(3);
 
         // channel 1 and 2 are configured the same
         TMR4_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
@@ -392,7 +411,7 @@ namespace adc
         TMR4_CMPLD11 = comp1load[1];
         // CM (count mode): counting rising edges of primary source, PCS (Primary count source): IP bus clock with prescaler 1, LENGHT=0: counts until rollover, OUTMODE: Toggle output on compare
         // COINIT: reinitialization when channel 0 is resetting
-        TMR4_CTRL1 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(8) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
+        TMR4_CTRL1 = TMR_CTRL_CM(1) | TMR_CTRL_PCS(15) | TMR_CTRL_COINIT | TMR_CTRL_OUTMODE(3);
 
         TMR4_SCTRL2 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
         TMR4_CNTR2 = 0;

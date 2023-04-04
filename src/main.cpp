@@ -13,7 +13,7 @@
 #include "OctoWS2811.h"
 // https://www.pjrc.com/teensy/td_libs_OctoWS2811.html
 
-#define TESTING // comment/uncomment depending if you use the testing functions
+// #define TESTING // comment/uncomment depending if you use the testing functions
 
 #ifdef TESTING
 #include "testing.h" // all the test function should be here
@@ -96,6 +96,14 @@ int main()
     test_complex_DMA();
 #endif
 
+    adc::init();
+
+    adc::startConversion();
+    Serial.println("Conversion started");
+
+    delay(10000);
+    adc::stopConversion();
+    Serial.println("Conversion stopped");
     // State state = State::IDLE;
 
     /// Why no adc::setup() call?
