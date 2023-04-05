@@ -16,35 +16,6 @@ void print_dummy_2();
 void print_dummy_3();
 void print_dummy_4();
 
-void testing_timers_basic()
-{
-    clock::setup();
-    PIT::setup();
-
-    PIT::setUpPeriodicISR2(print_dummy_1);
-    PIT::setUpPeriodicISR3(print_dummy_2);
-    delay(3000);
-
-    while (42)
-    {
-        delay(1000);
-        PIT::startPeriodic2(0xFFFFFFF);
-        PIT::startPeriodic3(0xFFFFFF);
-
-        for (uint8_t i = 0; i < 10; i++)
-        {
-            delay(1000);
-            Serial.println("waited 1s");
-        }
-
-        PIT::stopPeriodic2();
-        PIT::stopPeriodic3();
-        Serial.println("timers disabled");
-        delay(4000);
-        Serial.println("waited 4 seconds, timers in 1s");
-    }
-}
-
 void testing_timers_general()
 {
     clock::setup();
@@ -304,34 +275,28 @@ void test_complex_DMA()
 
     // works only with 8bit, 16 and 32 don't work as expected
     volatile uint8_t source[1] = {a};
+    uint32_t led_source[1] = {0xFF00};
     volatile uint8_t destination[1] = {d};
+    // blinking led
 
     // configuring the channel
     dma1.sourceBuffer(source, 1);
-    // channel_basic.TCD->SADDR = &source;
     dma1.destinationBuffer(destination, 1);
+    // blinking led:
+    dma2.sourceBuffer(led_source, 1);
+    dma2.destination(IMXRT_GPIO1.DR_TOGGLE);
+    gpio::set_normal_GPIO(0xFFFF0000, DB_GPIO_PORT_NORMAL);
+    DB_GPIO_PORT_NORMAL.GDIR = 0xFFFF0000; // bits 16-31 as outputs, rest input
 
     // is setting up timers and linking output to XBAR, tjhat can be used for DMA
     adc::setting_up_timers_DMA();
-    // dma1.source(a);
-    // dma1.destination(d);
-    //  dma1.TCD->SADDR = bitmask;
-    //  dma1.TCD->SOFF = 8;
-    //  dma1.TCD->ATTR = DMA_TCD_ATTR_SSIZE(3) | DMA_TCD_ATTR_SMOD(4) | DMA_TCD_ATTR_DSIZE(2);
-    //  dma1.TCD->NBYTES_MLOFFYES = DMA_TCD_NBYTES_DMLOE |
-    //                              DMA_TCD_NBYTES_MLOFFYES_MLOFF(-65536) |
-    //                              DMA_TCD_NBYTES_MLOFFYES_NBYTES(16);
-    //  dma1.TCD->SLAST = 0;
-    //  dma1.TCD->DADDR = &GPIO1_DR_SET;
-    //  dma1.TCD->DOFF = 16384;
-    //  dma1.TCD->CITER_ELINKNO = numbytes * 8;
-    //  dma1.TCD->DLASTSGA = -65536;
-    //  dma1.TCD->BITER_ELINKNO = numbytes * 8;
-    //  dma1.TCD->CSR = DMA_TCD_CSR_DREQ;
-    //  table p.54
+
     dma1.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_0);
-    // starting timers
+    dma2.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_1);
+
+    // starting timers, enabling channel
     dma1.enable();
+    dma2.enable();
     TMR4_ENBL |= 7;
 
     // checking if d is changed:
@@ -340,10 +305,9 @@ void test_complex_DMA()
         Serial.print("value of d : ");
         Serial.println(destination[0]);
         destination[0] = 0;
-        Serial.print("value of d : ");
-        Serial.println(destination[0]);
-        // dma1.triggerManual();
-        delay(200);
+        // Serial.print("value of d : ");
+        // Serial.println(destination[0]);
+        delay(500);
     }
 }
 

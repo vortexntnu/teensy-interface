@@ -7,24 +7,11 @@
 #include "DMAChannel.h"
 #include "Arduino.h"
 
+// used to link Quad timers to DMA channels
 extern "C" void xbar_connect(unsigned int input, unsigned int output); // in pwm.c
 
-/// How it should work (is planned in the code) at the moment:
-// ! old version, only here to have a trace off what has been attempted
 /*
-First call adc::setup(), to set up all the timers and GPIOS needed for the communication
- - adc::config: writing register values to adc with custom parallel bus interface
- Then, for actual conversion:
- - adc::startConversion() : sets a timer every 250 clk cycles to call adc::triggerConversion()
-    This function might be called only once, then conversion will be done every 250 clk cycles
- - weird timer to then call
-   adc::readLoop() : loops to get all channels from adc, not using channel 6-7-8.
-   Then calling adc::tranferData()
- - adc::transferData(): puts the data from adc into the ringbuffers
-*/
-
-/*
-*----How it should work: from ADC datasheet -----
+*---- from ADC datasheet -----
 *    init():
         -configuring the pins: maybe need to reconfigure from write to read --> test
             -CS(13), RD(12), WR(11), PAR/SER(8), HW/SW(37) CONVST as output, BUSY/INT(35) as input
@@ -43,6 +30,7 @@ First call adc::setup(), to set up all the timers and GPIOS needed for the commu
         -WR to low for at least 15ns
         -First WR high, then CS, data must be valid for 5ns more!
         IF bit 30, the register values can be read (maybe on parallel interface) on SDO_A
+        -PAR-pins as input again
 *    start_convertion():
         -pull CONVST high to start conversion (all channels at the same time)
         -CONVST can stay high or pulled low after, best is when BUSY/INT happens
@@ -54,7 +42,7 @@ First call adc::setup(), to set up all the timers and GPIOS needed for the commu
         -CS low, then RD low(no delay needed between)
         -CS can stay low
         -resetting channels_processed
-        - starting timer to call readData()
+        -starting timer to call readData()
        ! - RD has to be low for at least 20ns
 Repeat:
 *    readData():
@@ -63,8 +51,8 @@ Repeat:
         -value on PAR-bus is ready after max 15ns after RD low
         - RD to HIGH, must be high for at least 2ns for next data.
         INFO: Data is valid for 5ns after rising edge
-        - timer to call next_RD()
         * if all channels read: go to stopRead()
+        - timer to call next_RD()
 *    next_RD():
         -pull read down again if other data expected
         - starting timer to call readData() again
@@ -73,7 +61,6 @@ Repeat:
         -BUS goes to tree-state after max 10ns.
         -On ADS8528: 0 ns between CS rising edge to next CONVST rising edge
         ! min time between 2 CONVST rising edges: 240ns
-
 */
 
 namespace adc
@@ -86,27 +73,28 @@ namespace adc
     uint16_t testing_value_par;
 #endif
 
-    RingBuffer ChannelA0 = RingBuffer();
-    RingBuffer ChannelA1 = RingBuffer();
-    RingBuffer ChannelB0 = RingBuffer();
-    RingBuffer ChannelB1 = RingBuffer();
-    RingBuffer ChannelC0 = RingBuffer(); /// not planned on using
+    RingBuffer_16bit ChannelA0 = RingBuffer_16bit();
+    RingBuffer_16bit ChannelA1 = RingBuffer_16bit();
+    RingBuffer_16bit ChannelB0 = RingBuffer_16bit();
+    RingBuffer_16bit ChannelB1 = RingBuffer_16bit();
+    RingBuffer_16bit ChannelC0 = RingBuffer_16bit();
     RingBuffer_32bit sampleTime = RingBuffer_32bit();
 
     // sets pins accordingly to value (no control signals)
-    void
-    write_ADC_par(uint16_t value);
+    void write_ADC_par(uint16_t value);
     // returns value on par-bus to ADC (no control signals)
     uint16_t read_ADC_par();
 
+    // should not be accessed from outside, get called when triggerconversion is called.
+    // trigger conversion can be called from the outside to sample only once.
+    void beginRead();
+    void readData();
+    void next_RD(); // pulling _RD down, starting timer for next read
+    void stopRead();
+    void transferData(); // transfer data to ringbuffers.
+
     void init()
     {
-        // // going back to normal GPIO mode (port 1-5)
-        // IOMUXC_GPR_GPR26 = 0x0; // 0xFFFFFFFF to use fast GPIO
-        // IOMUXC_GPR_GPR27 = 0x0; // each bit can be configured normal or fast
-        // IOMUXC_GPR_GPR28 = 0x0;
-        // IOMUXC_GPR_GPR29 = 0x0;
-
         gpio::set_normal_GPIO(1 << adc::_WR, _WR_GPIO_PORT_NORMAL);
         gpio::set_normal_GPIO(1 << adc::_RD, _RD_GPIO_PORT_NORMAL);
         gpio::set_normal_GPIO(1 << adc::_CS, _CS_GPIO_PORT_NORMAL);
@@ -168,17 +156,6 @@ namespace adc
         // output, for testing pourpuse (LEDs)
         gpio::configPort(DB_GPIO_PORT_NORMAL, 0xFFFF0000, DB_MASK);
 #endif
-
-        // defining value of register
-        uint32_t ADC_reg_config;
-        // WRITE_EN needs to be set to update REG, internal clock, BUSY mode active high,
-        // powering off channel D because we don't need it, internal ref because nothing external connected, reference voltage to 2.5V //? unsure about that ?
-        ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC);
-        // value of channel a doubles by dividing range by 2 (works as expected)
-        // ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC) | (1 << CONFIG_RANGE_A);
-        config(ADC_reg_config);
-
-        setup();
     }
 
     // set up sampling
@@ -211,7 +188,7 @@ namespace adc
     void stopConversion()
     {
         // no new conversion
-        PIT::stopPeriodic(0);
+        PIT::stopPeriodic(PIT::PIT_0);
         // to finish the ongoing reading
         delayMicroseconds(100);
         for (uint8_t i = 1; i < 3; i++)
@@ -226,8 +203,6 @@ namespace adc
         gpio::write_pin(RESET, 1, RESET_GPIO_PORT_NORMAL);
         delay(1);
         gpio::write_pin(RESET, 0, RESET_GPIO_PORT_NORMAL);
-
-        Serial.println("Stopping conversion and resetting pins");
     }
 
     /// @brief function to start the conversion of data from ADC. once ADC is ready to output data, GpioISR will be triggered by the BUSY pin
@@ -239,24 +214,17 @@ namespace adc
         // ringbuffer with the timestamps
         sampleTime.insert(micros());
 
-        // ! enable interrupt on BUSY/INT pin
-        // ! function to be called :
-        // gpioInterrupt::setUpGpioISR(beginRead); //? why doing it every time and not in an init() function
+        // enable interrupt on BUSY/INT pin
         attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), beginRead, FALLING);
-        // so far for testing:
-        // Serial.println("Delaying (conversion)");
-        // delay(200); // will be triggered by an interupt in final implementation
-        // beginRead();
     }
 
     // resetting channels_processed and CONVST, continues with readData
     // updated version
     void beginRead()
     {
-        // Serial.println("beginRead()");
         // ! disable interrupts from BUSY/INT, will be enabled again by next triggerConvst()
         detachInterrupt(BUSYINT_ARDUINO_PIN);
-        // PIT0 is continuing to run, will trigger next call in (250?) clockcycles
+        // PIT0 is continuing to run
 
         channels_processed = 0;
 #ifdef TESTING
@@ -311,36 +279,8 @@ namespace adc
     // turning of
     void stopRead()
     {
-        // Serial.print("First chan: ");
-        // Serial.println(sampleData[0]);
-        // Serial.print("sec : ");
-        // Serial.println(sampleData[1]);
-
         // timers are already off, no need to do anything
         gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
-        transferData();
-    }
-
-    /// is trying to to the same than readData but without interrupt, back to back. Written by two different persons
-    // ! backup plan!!!!
-    void readLoop()
-    {
-        for (int i = 0; i < 5; i++)
-        {
-            gpio::write_pin(_RD, 0, IMXRT_GPIO7);               /// tells the adc to put data on the line
-            sampleData[channels_processed] = gpio::read_pins(); /// reads value from ADC on parallel data bus
-            gpio::write_pin(_RD, 1, IMXRT_GPIO7);               /// finish read operation, next loop the adc will put data from next channel on the line
-        }
-        for (int i = 5; i < 8; i++)
-        { /// this would be channel 6 to 8, that we don't need
-            gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-            /// could probably be replaced with a real delay, it happened to be exactly the right delay to call this function
-            if (1)
-            {
-                gpio::write_pin(_RD, 0, IMXRT_GPIO7);
-            } /// not reading it, just faking it
-            gpio::write_pin(_RD, 1, IMXRT_GPIO7);
-        }
         transferData();
     }
 
@@ -352,9 +292,10 @@ namespace adc
         ChannelB1.insert(sampleData[3]);
         ChannelC0.insert(sampleData[4]);
     }
-
-    /// @brief configures the ADC
-    // !--> needs to be tested !!!
+    /**
+      @brief configures the internal 32-bit config register of the ADC
+      @param reg_val: value of the 32bit register
+    */
     void config(uint32_t reg_val)
     {
         // pins as output
@@ -391,10 +332,12 @@ namespace adc
 
     void write_ADC_par(uint16_t value)
     {
+        // The ADC pins are located at bits 16-31 of GPIO port (1)
         gpio::write_port(value << DB_REG_SHIFT, DB_GPIO_PORT_NORMAL, DB_MASK);
     }
     uint16_t read_ADC_par()
     {
+        // we want the 16 highest bits
         return gpio::read_port(DB_GPIO_PORT_NORMAL) >> DB_REG_SHIFT;
     }
 

@@ -97,6 +97,16 @@ int main()
 #endif
 
     adc::init();
+    // defining value of register
+    uint32_t ADC_reg_config;
+    // WRITE_EN needs to be set to update REG, internal clock, BUSY mode active high,
+    // powering off channel D because we don't need it, internal ref because nothing external connected, reference voltage to 2.5V //? unsure about that ?
+    ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC);
+    // value of channel a doubles by dividing range by 2 (works as expected)
+    // ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC) | (1 << CONFIG_RANGE_A);
+    adc::config(ADC_reg_config);
+
+    adc::setup();
 
     Serial.println("Conversion will be started");
 
@@ -124,40 +134,4 @@ int main()
         Serial.print(", ");
     }
     Serial.println("");
-    // State state = State::IDLE;
-
-    /// Why no adc::setup() call?
-    /// this state machine was never testet and also it was not exactly decided how to do it. This is where team 2022 stopped about.
-
-    // while (1)
-    // {
-    //     switch (state)
-    //     {
-    //     case IDLE: {
-
-    //         break;
-    //     }
-    //     case CONFIG_ADC: {
-    //         //config function
-    //         adc::config();
-    //         state = State::IDLE;
-    //         break;
-    //     }
-    //     case SAMPLE: {
-    //         adc::startConversion();
-
-    //         break;
-    //     }
-    //     default:
-    //         break;
-    //     }
-
-    //     #ifdef PIN_DEBUG
-    //     setupgptIndicator();
-    //     gpt::startTimer(3750); //Takes in amount of clock cycles it needs before execute
-    //     Serial.printf("2sec delay\n");
-    //     delay(2000);
-    //     #endif
-    //     delay(1000);
-    // }
 }

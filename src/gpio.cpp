@@ -11,6 +11,10 @@ namespace gpio
 
     */
 
+    /** @brief set pin to input or output mode. 1->output. 0->input.
+     * @param pin: should be of type CORE_PINX_BIT, i.e. the pins number on the teensy.
+     * @param GPIO_n: The GPIO port of the pin
+     */
     void configPin(int pin, int mode, IMXRT_GPIO_t &GPIO_n)
     {
         // set to output mode.
@@ -29,11 +33,15 @@ namespace gpio
     {
         // keeping the values we mask, and overwriting the other
         GPIO_n.GDIR = (GPIO_n.GDIR & ~mask) | (reg_val & mask);
-
-        // GPIO_n.G = reg_value & mask;
-        // GPIO_n.DR_CLEAR = ~reg_value & mask; // flipping bits to set the bits that needs to be cleared
     }
-    // see page 375 for register description
+
+    /**
+     * @brief By default, Arduino sets pin to fast mode. Pins are configured to normal speed.
+     * Only GPIO ports 1-5 can then be used
+     * See page 375 for register description
+     * @param mask which pins are configured
+     * @param GPIO_n The GPIO port of the pin, can be the normal or fast register
+     */
     void set_normal_GPIO(uint32_t mask, IMXRT_GPIO_t &GPIO_n)
     {
         if (&GPIO_n == IMXRT_GPIO1_ADDRESS || &GPIO_n == IMXRT_GPIO6_ADDRESS)
@@ -53,6 +61,14 @@ namespace gpio
             IOMUXC_GPR_GPR29 &= ~mask; // 0xFFFFFFFF to use fast GPIO
         }
     }
+    /**
+     * @brief  Pins are configured to fast speed.
+     * Only GPIO ports 6-9 can then be used
+     * By default, Arduino sets pin to fast mode anyway.
+     * See page 375 for register description
+     * @param mask which pins are configured
+     * @param GPIO_n The GPIO port of the pin, can be the normal or fast register
+     */
     void set_fast_GPIO(uint32_t mask, IMXRT_GPIO_t &GPIO_n)
     {
         if (&GPIO_n == IMXRT_GPIO1_ADDRESS || &GPIO_n == IMXRT_GPIO6_ADDRESS)
@@ -73,38 +89,31 @@ namespace gpio
         }
     }
 
-    // info: inline: kinda like a macro, replace the fonction call with directly the
-    // code. saves time to call, because the call takes longer than the actual code
-    // inside
-    inline void read_pin(int pin, uint16_t *data, uint32_t reg)
-    {
-        //? does this work, not same syntax as writing? reg is not a pointer but a value
-        *data |= (((reg) & (0x1 << pin)) >> (pin - core_to_sample_bit[pin])); /// moves the pin value to right position in
-                                                                              /// data, see adc.h, this is hardcoded to
-                                                                              /// match the acoustics board
-    }
-
-    // return 0 or 1
+    /** @brief reads the physical pin value
+     * @param pin: should be of type CORE_PINX_BIT, i.e. the pins number on the teensy.
+     * @param GPIO_n: The GPIO port of the pin
+     * @return 0 if LOW and 1 if HiGH on the pin
+     */
     uint8_t read_pin(int pin, IMXRT_GPIO_t &GPIO_n)
     {
-        return (((GPIO_n.PSR) & (0x1 << pin)) >> (pin - core_to_sample_bit[pin]));
+        return (GPIO_n.PSR >> pin) & 0b1;
     }
 
+    /** @brief sets the output of the pin as desired
+     * @param pin should be of type CORE_PINX_BIT, i.e. the pins number on the teensy.
+     * @param value the value to set to. 0 -> LOW and 1 -> HIGH
+     * @param GPIO_n The GPIO port of the pin
+     */
     void write_pin(int pin, uint8_t value, IMXRT_GPIO_t &GPIO_n)
     {
         if (value)
         {
-            GPIO_n.DR_SET |= (1 << pin); /// the MCU has registers to set or clear registers
+            GPIO_n.DR_SET |= (1 << pin); // the MCU has registers to set or clear registers
         }
         else
         {
-            GPIO_n.DR_CLEAR |= (1 << pin); /// putting a 1 in the clear register will
-                                           /// clear the bit in the GPIO_n register
+            GPIO_n.DR_CLEAR |= (1 << pin);
         }
-        // or
-        /*
-            GPIO_n.DR |= ((value & 0b1) << pin);
-        */
     }
 
     void toggle_pin(int pin, IMXRT_GPIO_t &GPIO_n)
@@ -112,8 +121,13 @@ namespace gpio
         // same as above, there are registers (.DR_TOGGLE) that will toggle the bits where a 1 is written
         GPIO_n.DR_TOGGLE |= (1 << pin);
     }
-
-    void write_port(uint32_t reg_value, IMXRT_GPIO_t &GPIO_n, uint32_t mask = 0xFFFFFFFF)
+    /** @brief writes values to a complete GPIO port
+     * @param reg_value which pin should be set and which cleared, 32-bit
+     * @param GPIO_n The GPIO port of the pin
+     * @param mask mask if not all of the pins should be changed.
+     * 1 means the pin will be set to value from @reg_value
+     */
+    void write_port(uint32_t reg_value, IMXRT_GPIO_t &GPIO_n, uint32_t mask)
     {
         GPIO_n.DR_SET = reg_value & mask;
         GPIO_n.DR_CLEAR = ~reg_value & mask; // flipping bits to set the bits that needs to be cleared
@@ -122,41 +136,6 @@ namespace gpio
     uint32_t read_port(IMXRT_GPIO_t &GPIO_n)
     {
         return GPIO_n.PSR;
-    }
-
-    //? what is this function supposed to do?
-    void test_write()
-    {
-        IMXRT_GPIO6.GDIR |= (0x1 << CORE_PIN21_BIT);
-        Serial.printf("%d\n", ((IMXRT_GPIO7.DR) & (0x1 << CORE_PIN21_BIT)) >> CORE_PIN21_BIT);
-        IMXRT_GPIO6.DR_SET |= (0x1 << CORE_PIN21_BIT);
-        Serial.printf("%d\n", ((IMXRT_GPIO7.DR) & (0x1 << CORE_PIN21_BIT)) >> CORE_PIN21_BIT);
-        IMXRT_GPIO6.DR_CLEAR |= (0x1 << CORE_PIN21_BIT);
-    }
-
-    //! needs to be tested by pulling pins to VCC or GND and see if value match
-    // only 12 pins, not the 16 for the bus
-    uint16_t read_pins()
-    {
-        uint16_t data = 0;
-        uint32_t DR = IMXRT_GPIO7.DR; /// hopefully the adress is a uint32_t
-
-        /// reading all the pins defined as DBX in adc.h
-        read_pin(CORE_PIN38_BIT, &data, DR);
-        read_pin(CORE_PIN39_BIT, &data, DR);
-        read_pin(CORE_PIN40_BIT, &data, DR);
-        read_pin(CORE_PIN41_BIT, &data, DR);
-
-        read_pin(CORE_PIN14_BIT, &data, DR);
-        read_pin(CORE_PIN15_BIT, &data, DR);
-        read_pin(CORE_PIN16_BIT, &data, DR);
-        read_pin(CORE_PIN18_BIT, &data, DR);
-        read_pin(CORE_PIN17_BIT, &data, DR);
-        read_pin(CORE_PIN19_BIT, &data, DR);
-        read_pin(CORE_PIN20_BIT, &data, DR);
-        read_pin(CORE_PIN21_BIT, &data, DR);
-
-        return data;
     }
 
     // debug function

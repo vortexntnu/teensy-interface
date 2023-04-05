@@ -24,16 +24,6 @@ namespace PIT
 
     void setup();
 
-    // from team 2021-2022
-    ////void ISR();     /// should not be called from outside!!
-    void setUpPeriodicISR3(void_function_ptr function);
-    void setUpPeriodicISR2(void_function_ptr function);
-
-    void startPeriodic3(int clockcycles);
-    void startPeriodic2(int clockcycles);
-    void stopPeriodic2();
-    void stopPeriodic3();
-
     // general
     void setUpPeriodicISR(void_function_ptr function, uint32_t clockcycles, PIT_channels PIT_number);
     void setUpPeriodicISR(void_function_ptr function, PIT_channels PIT_number);

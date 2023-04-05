@@ -34,44 +34,7 @@ namespace PIT
     }
 #endif
 
-    void (*isr_periodic_func0)(void) = dummyISR;
-    void (*isr_periodic_func1)(void) = dummyISR;
-    void (*isr_periodic_func3)(void) = dummyISR;
-    void (*isr_periodic_func2)(void) = dummyISR;
-
     void ISR()
-    {
-        NVIC_DISABLE_IRQ(IRQ_PIT);
-
-        // making sure it is not an empty pointer that would crash the programm
-        if (PIT_TFLG3 && isr_periodic_func3 != nullptr)
-        { // bit 0 of this register: interupt pending
-            PIT_TFLG3 = 0x1;
-            (*isr_periodic_func3)();
-        }
-
-        if (PIT_TFLG2)
-        {                    // bit 0 of this register: interupt pending
-            PIT_TFLG2 = 0x1; // writing a 1 clears the interupt flag(PIT_TFLG2)
-            (*isr_periodic_func2)();
-        }
-
-        if (PIT_TFLG0)
-        { // bit 0 of this register: interupt pending
-            PIT_TFLG0 = 0x1;
-            (*isr_periodic_func0)();
-        }
-
-        if (PIT_TFLG1)
-        {                    // bit 0 of this register: interupt pending
-            PIT_TFLG1 = 0x1; // writing a 1 clears the interupt flag(PIT_TFLG2)
-            (*isr_periodic_func1)();
-        }
-
-        NVIC_ENABLE_IRQ(IRQ_PIT);
-    }
-
-    void ISR_table()
     {
         NVIC_DISABLE_IRQ(IRQ_PIT);
 
@@ -107,20 +70,6 @@ namespace PIT
         NVIC_ENABLE_IRQ(IRQ_PIT);
     }
 
-    /// @brief function called when IRQ_PIT interrupt happens
-    /// @param function function of top level file that will be called on IRQ_PIT interrupt, if (PIT_TFLG3)
-    void setUpPeriodicISR3(void_function_ptr function)
-    {
-        isr_periodic_func3 = function;
-    }
-
-    /// @brief function called when IRQ_PIT interrupt happens
-    /// @param function function of top level file that will be called on IRQ_PIT interrupt, if (PIT_TFLG2)
-    void setUpPeriodicISR2(void_function_ptr function)
-    {
-        isr_periodic_func2 = function;
-    }
-
     void setup()
     {
         PIT_MCR &= ~PIT_MCR_MDIS; // activates clock for periodic timers
@@ -133,7 +82,7 @@ namespace PIT
         PIT_TCTRL3 = 0x0;
 
         // all PIT interrupts are grouped into one IRQ
-        attachInterruptVector(IRQ_PIT, ISR_table);
+        attachInterruptVector(IRQ_PIT, ISR);
         NVIC_ENABLE_IRQ(IRQ_PIT); /// is activating the interrupt management for IRQ_PIT
 #ifdef SERIAL_DEBUGs
         dumpPeriodicRegisters();
@@ -142,45 +91,6 @@ namespace PIT
 
     // info: usefull info from datasheet: MCR[FRZ] can freeze the timers to debug. Datasheet page 2975
     //  these timers run until stopped
-
-    void startPeriodic3(int clockcycles)
-    { /// the register can take a clockcycles uint32_t value
-#ifdef SERIAL_DEBUG
-        Serial.println(">>> timer::startPeriodic3()");
-#endif
-        PIT_TCTRL3 |= PIT_TCTRL_TIE; // p2975: Timer interrupts can be enabled by setting TCTRLn[TIE], n=3
-        PIT_LDVAL3 = clockcycles;    // counting period
-        PIT_TCTRL3 |= PIT_TCTRL_TEN; // Enable Timer
-#ifdef SERIAL_DEBUG
-        Serial.println("<<< timer::startPeriodic3()");
-#endif
-    }
-
-    void startPeriodic2(int clockcycles)
-    {
-#ifdef SERIAL_DEBUG
-        Serial.println(">>> timer::startPeriodic2()");
-#endif
-        PIT_TCTRL2 |= PIT_TCTRL_TIE;
-        PIT_LDVAL2 = clockcycles;    // counting period
-        PIT_TCTRL2 |= PIT_TCTRL_TEN; // Enable Timer
-#ifdef SERIAL_DEBUG
-        Serial.println("<<< timer::startPeriodic2()");
-#endif
-    }
-
-    void stopPeriodic2()
-    {
-        PIT_TCTRL2 &= ~PIT_TCTRL_TIE;
-        PIT_TCTRL2 &= ~PIT_TCTRL_TEN; // Disable Timer
-        // or PIT_TCTRL2 = 0; // because the chained needs to be done when configuring
-    }
-
-    void stopPeriodic3()
-    {
-        PIT_TCTRL3 &= ~PIT_TCTRL_TIE;
-        PIT_TCTRL3 &= ~PIT_TCTRL_TEN; // Disable Timer
-    }
 
     //* ----------- general function, generelized for all 4 timers ---------------
 

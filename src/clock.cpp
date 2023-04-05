@@ -15,7 +15,7 @@ namespace clock
 
     /// this was to slow down the systemclock to be able to analyse the data with the oscilloscope at the office
     /// might need to be checked again
-    //// nice graphic p 1016
+    /// nice graphic p 1016
 
     void setup()
     {

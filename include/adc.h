@@ -47,23 +47,6 @@ namespace adc
     const int XCLK = CORE_PIN37_BIT;  // same pin as RANGE, depending if HW or SW
 #define RANGE_GPIO_PORT_NORMAL IMXRT_GPIO2
 #define XCLK_GPIO_PORT_NORMAL IMXRT_GPIO2
-    // /* this is for the accoustic board V2.0, but the pins will probably be rerouted*/
-    // const int DB0 = CORE_PIN25_BIT;     // GPIO 1.13
-    // const int DB1 = CORE_PIN24_BIT;     // GPIO 1.12
-    // const int DB2 = CORE_PIN38_BIT;     // GPIO 1.28
-    // const int DB3 = CORE_PIN39_BIT;     // GPIO 1.29
-    // const int DB4 = CORE_PIN40_BIT;     // GPIO 1.20
-    // const int DB5 = CORE_PIN41_BIT;     // GPIO 1.21
-    // const int DB6 = CORE_PIN14_BIT;     // GPIO 1.18
-    // const int DB7 = CORE_PIN15_BIT;     // GPIO 1.19
-    // const int DB8 = CORE_PIN16_BIT;     // GPIO 1.23
-    // const int DB9 = CORE_PIN17_BIT;     // GPIO 1.22
-    // const int DB10 = CORE_PIN18_BIT;    // GPIO 1.17
-    // const int DB11 = CORE_PIN19_BIT;    // GPIO 1.16
-    // const int DB12 = CORE_PIN20_BIT;    // GPIO 1.26
-    // const int DB13 = CORE_PIN21_BIT;    // GPIO 1.27
-    // const int DB14 = CORE_PIN22_BIT;    // GPIO 1.24
-    // const int DB15 = CORE_PIN23_BIT;    // GPIO 1.25
 
     // The pins are rearranged in a way to have the values from adc in the GPIO 1 (or 6 in fast mode)
     // the data will be at bits [16:31], so we only need a shift of 16.
@@ -118,25 +101,18 @@ namespace adc
 
 #define MAX_SAMPLING_PERIOD 10
 
-    // Interrupt Signals.
-    /* static uint16_t ChannelA0Data;
-    static uint16_t ChannelA1Data;
-    static uint16_t ChannelB0Data;
-    static uint16_t ChannelB1Data;
-    static uint16_t ChannelC0Data; */
-
     // Ringbuffers to store data, one for each channel (not yet implemented)
-    extern RingBuffer ChannelA0;
-    extern RingBuffer ChannelA1;
-    extern RingBuffer ChannelB0;
-    extern RingBuffer ChannelB1;
-    extern RingBuffer ChannelC0;
+    extern RingBuffer_16bit ChannelA0;
+    extern RingBuffer_16bit ChannelA1;
+    extern RingBuffer_16bit ChannelB0;
+    extern RingBuffer_16bit ChannelB1;
+    extern RingBuffer_16bit ChannelC0;
 
     extern RingBuffer_32bit sampleTime;
 
     static uint16_t sampleData[N_CHANNELS]; // array where the measurements will be stored before put into ringbuffer
 
-    void init();
+    void init();                   // inits pins
     void setup();                  // setup the ADC
     void config(uint32_t reg_val); // configure ADC so it's ready to send data.
 
@@ -144,15 +120,6 @@ namespace adc
     void stopConversion();  // stop periodic timer interrupts
 
     void triggerConversion(); // tell ADC to start converting.
-    void readData();
-    void next_RD(); // pulling _RD down, starting timer for next read
-    void beginRead();
-    void stopRead();
-    /// void readData();
-    void busyOVER();
-    void readLoop();
-
-    void transferData(); // transfer data to ringbuffers.
 
     void setting_up_timers_DMA();
 };
