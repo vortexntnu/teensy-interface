@@ -9,6 +9,13 @@ namespace adc
     const int N_HYDROPHONES = 5;
     const int SAMPLE_SIZE = 12; // bits in one sample
 
+    enum ADC_sample_mode
+    {
+        BLOCKING,
+        TIMER,
+        DMA
+    };
+
     /*
         *Pin definition of Control signals
         The CORE_PINX_BIT define is the offset in the GPIO register. For example CORE_PIN39_BIT
@@ -99,7 +106,9 @@ namespace adc
 #define T_WRL 15
 #define T_WRH 10
 
-#define MIN_SAMPLING_PERIOD 7
+#define MIN_SAMP_PERIOD_BLOCKING 10
+#define MIN_SAMP_PERIOD_TIMER 11
+#define MIN_SAMP_PERIOD_DMA 10
 
     // Ringbuffers to store data, one for each channel (not yet implemented)
     extern RingBuffer_16bit ChannelA0;
@@ -116,8 +125,8 @@ namespace adc
     void setup();                  // setup the ADC
     void config(uint32_t reg_val); // configure ADC so it's ready to send data.
 
-    void startConversion(uint32_t sample_period_us = MIN_SAMPLING_PERIOD); // setup periodic timer interrupts.
-    void stopConversion();                                                 // stop periodic timer interrupts
+    void startConversion(uint32_t sample_period_us, ADC_sample_mode sample_mode = BLOCKING); // setup periodic timer interrupts.
+    void stopConversion();                                                                   // stop periodic timer interrupts
 
     void triggerConversion(); // tell ADC to start converting.
 

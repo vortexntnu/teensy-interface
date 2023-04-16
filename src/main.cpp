@@ -19,7 +19,7 @@
 #include "testing.h" // all the test function should be here
 #endif
 
-// #define SERIAL_DEBUG
+#define SERIAL_DEBUG
 
 // This can be any wanted character array / string
 
@@ -38,10 +38,6 @@ enum State
     SAMPLE
 };
 
-void test_timers();
-void print_dummy_1();
-void print_dummy_2();
-
 #ifdef PIN_DEBUG
 void setupgptIndicator()
 {
@@ -50,22 +46,6 @@ void setupgptIndicator()
 void gptIndicator()
 {
     gpio::toggle_pin(CORE_PIN32_BIT, IMXRT_GPIO7);
-}
-#endif
-
-#ifdef SERIAL_DEBUG
-static void blink_on_interrupt(void)
-{ /// function to call on interupts, works ony once
-    gpio::write_pin(CORE_PIN13_BIT, 1, IMXRT_GPIO6);
-    digitalWrite(LED_BUILTIN, HIGH);
-}
-
-void test_interrupts() /// function that inits pins to be called on interrupts I guess
-{
-    gpio::configPin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
-    gpio::write_pin(CORE_PIN6_BIT, 1, IMXRT_GPIO7);
-
-    gpio::configPin(CORE_PIN13_BIT, 1, IMXRT_GPIO6); // config LED.
 }
 #endif
 
@@ -86,14 +66,14 @@ int main()
 
 #ifdef TESTING
     // blinking_led();
-    // testing_timers_general(); // in test file
+    //testing_timers_general(); // in test file
     // testing_timers_basic();
     //  PIT::startPeriodic(3000, PIT::PIT_1);
     // test_par_interface();
     // test_ADC_timer();
     // test_basic_DMA();
     // test_interupt_arduino();
-    test_complex_DMA();
+    //test_complex_DMA();
 #endif
 
     adc::init();
@@ -110,13 +90,14 @@ int main()
 
     Serial.println("Conversion will be started");
 
-    uint16_t number_samples = 50;
+    uint16_t number_samples = 100 * 5 * 2;
+    uint32_t sample_period = MIN_SAMP_PERIOD_TIMER;
     if (number_samples > 1500)
     {
         number_samples = 1500;
     }
-    adc::startConversion();
-    delayMicroseconds(MIN_SAMPLING_PERIOD * number_samples);
+    adc::startConversion(sample_period, adc::TIMER);
+    delayMicroseconds(sample_period * number_samples);
     adc::stopConversion();
     Serial.println("Conversion stopped");
 

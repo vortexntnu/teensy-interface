@@ -66,6 +66,8 @@ Repeat:
 namespace adc
 {
 
+    ADC_sample_mode ADC_mode;
+
 #define DB_MASK 0xFFFF0000 // bit 16 to 31 of port 1 are the parallel interface
 #define DB_REG_SHIFT 16    // values in GPIO reg must be shifted by 16
     volatile uint8_t channels_processed;
@@ -82,6 +84,8 @@ namespace adc
 
     RingBuffer_16bit *ringbuffer_channels_ptr[5];
 
+    elapsedMicros stopwatch;
+
     // sets pins accordingly to value (no control signals)
     void
     write_ADC_par(uint16_t value);
@@ -95,6 +99,7 @@ namespace adc
     void next_RD(); // pulling _RD down, starting timer for next read
     void stopRead();
     void transferData(); // transfer data to ringbuffers.
+    void read_loop();
 
     void init()
     {
@@ -176,23 +181,54 @@ namespace adc
 
         // experimental found values
         PIT::setUpPeriodicISR(readData, clock::get_clockcycles_nano(T_RDL * 20), PIT::PIT_1);
+        Serial.print("Clockcycles PIT1 : ");
+        Serial.println(clock::get_clockcycles_nano(T_RDL * 20));
         PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_nano(T_RDH * 20), PIT::PIT_2);
+        Serial.print("Clockcycles PIT2 : ");
+        Serial.println(clock::get_clockcycles_nano(T_RDH * 20));
         // ! connect beginRead() to BUSY/INT interrupt -> is done in trigger_conversion()
     }
 
     // is starting the major loop timer, PIT0 that will trigger the conversion until stopped
     // @sample_period_us : a conversion will happen every "sample_period_us" microseconds
-    void startConversion(uint32_t sample_period_us)
+    void startConversion(uint32_t sample_period_us, ADC_sample_mode sample_mode)
     {
         Serial.println("Starting conversion");
         // ? do it in one call?
         // PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000), PIT::PIT_0);
         // value found by trial and error.
-        if (sample_period_us < MIN_SAMPLING_PERIOD)
+
+        ADC_mode = sample_mode;
+        uint32_t bounded_period = sample_period_us;
+        switch (sample_mode)
         {
-            sample_period_us = MIN_SAMPLING_PERIOD;
+        case BLOCKING:
+            if (sample_period_us < MIN_SAMP_PERIOD_BLOCKING)
+            {
+                bounded_period = MIN_SAMP_PERIOD_BLOCKING;
+            }
+            break;
+        case TIMER:
+            if (sample_period_us < MIN_SAMP_PERIOD_TIMER)
+            {
+                bounded_period = MIN_SAMP_PERIOD_TIMER;
+            }
+            break;
+        case DMA:
+            if (sample_period_us < MIN_SAMP_PERIOD_DMA)
+            {
+                bounded_period = MIN_SAMP_PERIOD_DMA;
+            }
+            break;
+        default:
+            break;
         }
-        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(sample_period_us), PIT::PIT_0);
+
+        // if (sample_period_us < MIN_SAMPLING_PERIOD)
+        // {
+        //     sample_period_us = MIN_SAMPLING_PERIOD;
+        // }
+        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(bounded_period), PIT::PIT_0);
 
         PIT::startPeriodic(PIT::PIT_0); // will call triggerConversion
     }
@@ -220,9 +256,10 @@ namespace adc
     /// @brief function to start the conversion of data from ADC. once ADC is ready to output data, GpioISR will be triggered by the BUSY pin
     void triggerConversion()
     {
-        // Serial.println("trigger conv");
+        // Serial.println("t");
 
         // ringbuffer with the timestamps
+        stopwatch = elapsedMicros();
         sampleTime.insert(micros());
 
         // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
@@ -230,14 +267,27 @@ namespace adc
         gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
 
         // enable interrupt on BUSY/INT pin
-        attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), beginRead, FALLING);
+        switch (ADC_mode)
+        {
+        case BLOCKING:
+            attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), read_loop, FALLING);
+            break;
+        case TIMER:
+            attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), beginRead, FALLING);
+            break;
+        default:
+            break;
+        }
+        // * previous version
+        // attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), beginRead, FALLING);
     }
 
     // resetting channels_processed and CONVST, continues with readData
     // updated version
     void beginRead()
     {
-        // ! disable interrupts from BUSY/INT, will be enabled again by next triggerConvst()
+        // Serial.println("b");
+        //  ! disable interrupts from BUSY/INT, will be enabled again by next triggerConvst()
         detachInterrupt(BUSYINT_ARDUINO_PIN);
         // PIT0 is continuing to run
 
@@ -259,10 +309,12 @@ namespace adc
     {
         // disabling timer, so far it is not a periodic timer
         PIT::stopPeriodic(PIT::PIT_1);
+        // Serial.println("r");
 
 #ifndef TESTING
         // sampleData[channels_processed] = read_ADC_par(); /// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
         ringbuffer_channels_ptr[channels_processed]->insert(read_ADC_par());
+        // ringbuffer_channels_ptr[channels_processed]->insert(read_ADC_par());
 #endif
 #ifdef TESTING
         write_ADC_par(testing_value_par);
@@ -279,6 +331,10 @@ namespace adc
         }
         else
         {
+            // ! testing of faster way
+            //gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+            //PIT::startPeriodic(PIT::PIT_1);
+
             PIT::startPeriodic(PIT::PIT_2);
         }
     }
@@ -287,6 +343,9 @@ namespace adc
     void next_RD()
     {
         PIT::stopPeriodic(PIT::PIT_2);
+
+        // Serial.println("n");
+
         gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
         // will call readData
         PIT::startPeriodic(PIT::PIT_1);
@@ -295,10 +354,15 @@ namespace adc
     // turning of
     void stopRead()
     {
+        // Serial.println("s");
+
         // timers are already off, no need to do anything
         gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+        // unsigned long time_to_read = stopwatch;
+        // Serial.print("time for 1 reading : ");
+        // Serial.println(time_to_read);
+        //  Serial.println("stop");
         // transferData();
-        is_reading_adc = 0;
     }
 
     void transferData()
@@ -308,6 +372,33 @@ namespace adc
         ChannelB0.insert(sampleData[2]);
         ChannelB1.insert(sampleData[3]);
         ChannelC0.insert(sampleData[4]);
+    }
+
+    void read_loop()
+    {
+        detachInterrupt(BUSYINT_ARDUINO_PIN);
+
+        // no need to have CONVST high now
+        gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
+
+        gpio::write_pin(_CS, 0, _CS_GPIO_PORT_NORMAL);
+
+        for (uint16_t i = 0; i < N_HYDROPHONES; i++)
+        {
+            gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+            // should take at least 20ns to trigger timer
+            delayNanoseconds(T_RDL);
+
+            ringbuffer_channels_ptr[i]->insert(read_ADC_par());
+            gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+            // this is already enough delay for 2ns (toggeling takes more than 2ns)
+            // delayNanoseconds(20);
+        }
+
+        gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+        unsigned long time_to_read = stopwatch;
+        // Serial.print("time for 1 reading : ");
+        // Serial.println(time_to_read);
     }
     /**
       @brief configures the internal 32-bit config register of the ADC

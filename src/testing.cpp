@@ -191,7 +191,7 @@ void test_ADC_timer()
 {
     adc::init();
 
-    adc::startConversion();
+    adc::startConversion(MIN_SAMP_PERIOD_TIMER, adc::TIMER);
     Serial.println("Conversion started");
 
     delay(60000);

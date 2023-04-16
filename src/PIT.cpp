@@ -57,12 +57,14 @@ namespace PIT
         { // bit 0 of this register: interupt pending
             PIT_TFLG1 = 0x1;
             //(*isr_periodic_func3)();
+            // Serial.println("1");
             (*isr_funct_table[1])();
         }
 
         if (PIT_TFLG0 && isr_funct_table[0] != nullptr)
         { // bit 0 of this register: interupt pending
             PIT_TFLG0 = 0x1;
+            // Serial.println("0");
             //(*isr_periodic_func3)();
             (*isr_funct_table[0])();
         }
