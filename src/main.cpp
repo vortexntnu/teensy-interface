@@ -110,8 +110,13 @@ int main()
 
     Serial.println("Conversion will be started");
 
+    uint16_t number_samples = 50;
+    if (number_samples > 1500)
+    {
+        number_samples = 1500;
+    }
     adc::startConversion();
-    delayMicroseconds(MAX_SAMPLING_PERIOD * 1500 * 2);
+    delayMicroseconds(MIN_SAMPLING_PERIOD * number_samples);
     adc::stopConversion();
     Serial.println("Conversion stopped");
 
@@ -119,7 +124,6 @@ int main()
     uint32_t previous_time_sample = adc::sampleTime.get();
     while (!adc::sampleTime.isEmpty())
     {
-
         uint32_t next_time_sample = adc::sampleTime.get();
         Serial.print(next_time_sample - previous_time_sample);
         Serial.print(", ");
@@ -128,7 +132,7 @@ int main()
     Serial.println("");
 
     // while (!adc::ChannelA0.isEmpty())
-    for (uint16_t i = 0; i < 1500; i++)
+    for (uint16_t i = 0; i < number_samples; i++)
     {
         Serial.print((int16_t)adc::ChannelA0.get());
         Serial.print(", ");

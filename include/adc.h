@@ -99,7 +99,7 @@ namespace adc
 #define T_WRL 15
 #define T_WRH 10
 
-#define MAX_SAMPLING_PERIOD 10
+#define MIN_SAMPLING_PERIOD 7
 
     // Ringbuffers to store data, one for each channel (not yet implemented)
     extern RingBuffer_16bit ChannelA0;
@@ -116,8 +116,8 @@ namespace adc
     void setup();                  // setup the ADC
     void config(uint32_t reg_val); // configure ADC so it's ready to send data.
 
-    void startConversion(); // setup periodic timer interrupts.
-    void stopConversion();  // stop periodic timer interrupts
+    void startConversion(uint32_t sample_period_us = MIN_SAMPLING_PERIOD); // setup periodic timer interrupts.
+    void stopConversion();                                                 // stop periodic timer interrupts
 
     void triggerConversion(); // tell ADC to start converting.
 

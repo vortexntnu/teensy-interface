@@ -68,7 +68,8 @@ namespace adc
 
 #define DB_MASK 0xFFFF0000 // bit 16 to 31 of port 1 are the parallel interface
 #define DB_REG_SHIFT 16    // values in GPIO reg must be shifted by 16
-    uint8_t channels_processed;
+    volatile uint8_t channels_processed;
+    volatile uint8_t is_reading_adc = 0;
 #ifdef TESTING
     uint16_t testing_value_par;
 #endif
@@ -80,8 +81,11 @@ namespace adc
     RingBuffer_16bit ChannelC0 = RingBuffer_16bit();
     RingBuffer_32bit sampleTime = RingBuffer_32bit();
 
+    RingBuffer_16bit *ringbuffer_channels_ptr[5];
+
     // sets pins accordingly to value (no control signals)
-    void write_ADC_par(uint16_t value);
+    void
+    write_ADC_par(uint16_t value);
     // returns value on par-bus to ADC (no control signals)
     uint16_t read_ADC_par();
 
@@ -162,10 +166,14 @@ namespace adc
     void setup()
     {
         clock::setup(); /// the clockfrequency needs to be defined somewhere, does it need to be called also if adc is not init()
-        // gpt::setup();
         PIT::setup();
-        // PIT::setUpPeriodicISR(readData, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_1);
-        // PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_micro(1000000 * 0.0001), PIT::PIT_2);
+
+        // setting pointers for the ringbuffers
+        ringbuffer_channels_ptr[0] = &ChannelA0;
+        ringbuffer_channels_ptr[1] = &ChannelA1;
+        ringbuffer_channels_ptr[2] = &ChannelB0;
+        ringbuffer_channels_ptr[3] = &ChannelB1;
+        ringbuffer_channels_ptr[4] = &ChannelC0;
 
         // experimental found values
         PIT::setUpPeriodicISR(readData, clock::get_clockcycles_nano(T_RDL * 20), PIT::PIT_1);
@@ -174,15 +182,20 @@ namespace adc
     }
 
     // is starting the major loop timer, PIT0 that will trigger the conversion until stopped
-    void startConversion()
+    // @sample_period_us : a conversion will happen every "sample_period_us" microseconds
+    void startConversion(uint32_t sample_period_us)
     {
         Serial.println("Starting conversion");
         // ? do it in one call?
         // PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000), PIT::PIT_0);
         // value found by trial and error.
-        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(MAX_SAMPLING_PERIOD), PIT::PIT_0);
+        if (sample_period_us < MIN_SAMPLING_PERIOD)
+        {
+            sample_period_us = MIN_SAMPLING_PERIOD;
+        }
+        PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(sample_period_us), PIT::PIT_0);
 
-        PIT::startPeriodic(PIT::PIT_0); // will call triggerConversion every 250 clockcycles
+        PIT::startPeriodic(PIT::PIT_0); // will call triggerConversion
     }
 
     void stopConversion()
@@ -209,10 +222,17 @@ namespace adc
     void triggerConversion()
     {
         // Serial.println("trigger conv");
-        // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
-        gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
+        while (is_reading_adc)
+        {
+        }
+
         // ringbuffer with the timestamps
         sampleTime.insert(micros());
+
+        is_reading_adc = 1;
+        // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
+
+        gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
 
         // enable interrupt on BUSY/INT pin
         attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), beginRead, FALLING);
@@ -246,7 +266,8 @@ namespace adc
         PIT::stopPeriodic(PIT::PIT_1);
 
 #ifndef TESTING
-        sampleData[channels_processed] = read_ADC_par(); /// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
+        // sampleData[channels_processed] = read_ADC_par(); /// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
+        ringbuffer_channels_ptr[channels_processed]->insert(read_ADC_par());
 #endif
 #ifdef TESTING
         write_ADC_par(testing_value_par);
@@ -281,7 +302,8 @@ namespace adc
     {
         // timers are already off, no need to do anything
         gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
-        transferData();
+        // transferData();
+        is_reading_adc = 0;
     }
 
     void transferData()
