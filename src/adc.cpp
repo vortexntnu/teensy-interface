@@ -69,7 +69,6 @@ namespace adc
 #define DB_MASK 0xFFFF0000 // bit 16 to 31 of port 1 are the parallel interface
 #define DB_REG_SHIFT 16    // values in GPIO reg must be shifted by 16
     volatile uint8_t channels_processed;
-    volatile uint8_t is_reading_adc = 0;
 #ifdef TESTING
     uint16_t testing_value_par;
 #endif
@@ -222,14 +221,10 @@ namespace adc
     void triggerConversion()
     {
         // Serial.println("trigger conv");
-        while (is_reading_adc)
-        {
-        }
 
         // ringbuffer with the timestamps
         sampleTime.insert(micros());
 
-        is_reading_adc = 1;
         // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
 
         gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
