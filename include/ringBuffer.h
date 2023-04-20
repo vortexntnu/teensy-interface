@@ -8,6 +8,10 @@
 this way reading and writing can happen in any order, as long as no more data than the SIZE is written before reading. If not, some data will be lost
 without processing it
  */
+// TODO:
+// make a parent ringbuffer class and have the different buffer sizes inherit it.
+// for variable size
+// and maybe also add a parameter to choose the buffer lenght (easy)
 class RingBuffer_16bit
 {
 
@@ -22,6 +26,11 @@ public:
     bool isEmpty()
     {
         return start == end;
+    }
+    void reset()
+    {
+        start = 0;
+        end = 0;
     }
 
     void insert(uint16_t item)
@@ -62,6 +71,11 @@ public:
     bool isEmpty()
     {
         return start == end;
+    }
+    void reset()
+    {
+        start = 0;
+        end = 0;
     }
 
     void insert(uint32_t item)
