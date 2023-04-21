@@ -31,7 +31,6 @@ enum State
 
 int main()
 {
-// clock of teensy is 600MHz after normal boot
 #ifdef SERIAL_DEBUG
     Serial.begin(9600);
     while (!Serial)
@@ -48,6 +47,9 @@ int main()
     /*
         First part: initializing ADC before being able to use it
     */
+    // clock of teensy is 600MHz after normal boot
+    clock::setup();
+    /* ----------------------------------------------------------------------------- */
     adc::init();
     // defining value of register
     uint32_t ADC_reg_config;
@@ -132,6 +134,7 @@ int main()
             3: process the new values
             4: go back to 1 and reset the ringbuffers
         Following can be implemented to sample "continuously":
+            -init clock
             - setup adc
             - define sample number and frequency
             loop:
