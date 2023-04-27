@@ -42,6 +42,8 @@ int main()
     /* ----------------------------------------------------------------------------- */
     // clock of teensy is 600MHz after normal boot
     clock::setup();
+    Serial.print("F_CPU_ACTUAL: ");
+    Serial.println(F_CPU_ACTUAL);
     /* ----------------------------------------------------------------------------- */
 
 #ifdef TESTING
@@ -87,7 +89,7 @@ int main()
     adc::stopConversion();
     // end of gathering samples
 
-    for (uint8_t i = 0; i < 1; i++)
+    for (uint8_t i = 0; i < 10; i++)
     {
         adc::sample_fasfb(1000);
     }
@@ -111,7 +113,8 @@ int main()
     {
         uint32_t next_time_sample = adc::sampleTime.get();
 #ifdef SERIAL_DEBUG
-        Serial.print(next_time_sample - previous_time_sample);
+        // Serial.print(next_time_sample - previous_time_sample);
+        Serial.print(next_time_sample);
         Serial.print(", ");
 #endif
         previous_time_sample = next_time_sample;

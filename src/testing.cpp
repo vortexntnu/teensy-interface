@@ -303,11 +303,48 @@ void test_complex_DMA()
     while (42)
     {
         Serial.print("value of d : ");
-        Serial.println(destination[0]);
+        Serial.println(destination[0]); // if DMA works, it should be 1 again
         destination[0] = 0;
-        // Serial.print("value of d : ");
-        // Serial.println(destination[0]);
-        delay(500);
+        Serial.print("d : ");
+        Serial.println(destination[0]); // should be 0
+        // delay(500);
+        delay(1);
+    }
+}
+
+void test_ADC_DMA()
+{
+    adc::init();
+    adc::setup();
+    adc::setting_up_timers_DMA();
+    adc::setting_up_DMA_channels();
+    // starting timers
+    uint32_t nb_high = 0;
+    uint32_t nb_low = 0;
+    unsigned long start_time = millis();
+    TMR4_ENBL |= 7;
+    while (millis() - start_time < 100)
+    {
+        // if (gpio::read_pin(adc::_RD, _RD_GPIO_PORT_NORMAL))
+        if (DMA_test_variable)
+        {
+            nb_high++;
+        }
+        else
+        {
+            nb_low++;
+        }
+        delayNanoseconds(100);
+    }
+
+    Serial.print("nb of HIGH : ");
+    Serial.println(nb_high);
+    Serial.print("nb of LOW : ");
+    Serial.println(nb_low);
+
+    while (42)
+    {
+        delay(1000);
     }
 }
 
