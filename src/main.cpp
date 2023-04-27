@@ -39,17 +39,22 @@ int main()
     Serial.printf("Serial connected\r\n");
 #endif
 
+    /* ----------------------------------------------------------------------------- */
+    // clock of teensy is 600MHz after normal boot
+    clock::setup();
+    /* ----------------------------------------------------------------------------- */
+
 #ifdef TESTING
     // * call testing function here, TESTING needs to be defined
+    // test_complex_DMA();
+    // test_ADC_DMA();
 #endif
 
     /* ----------------------------------------------------------------------------- */
     /*
         First part: initializing ADC before being able to use it
     */
-    // clock of teensy is 600MHz after normal boot
-    clock::setup();
-    /* ----------------------------------------------------------------------------- */
+
     adc::init();
     // defining value of register
     uint32_t ADC_reg_config;
@@ -70,17 +75,24 @@ int main()
 #endif
     // to be safe should be a bit under 1500. If it sampled more than 1500 for some reason,
     // the data gathered will be inconsistent.
-    uint16_t number_samples = 500;
-    uint32_t sample_period = 11; // >= MIN_SAMP_PERIOD_TIMER
-    if (number_samples > 1500)   // to not overfill ringbuffer
+    uint16_t number_samples = 1000;
+    uint32_t sample_period = 3; // >= MIN_SAMP_PERIOD_TIMER
+    if (number_samples > 1500)  // to not overfill ringbuffer
     {
         number_samples = 1500;
     }
     // gathering samples
-    adc::startConversion(sample_period, adc::TIMER);
+    adc::startConversion(sample_period, adc::BLOCKING);
     delayMicroseconds(sample_period * number_samples); // will sample "number_samples" samples
     adc::stopConversion();
     // end of gathering samples
+
+    for (uint8_t i = 0; i < 1; i++)
+    {
+        adc::sample_fasfb(1000);
+    }
+    // return 0;
+
     /* ----------------------------------------------------------------------------- */
     /* ----------------------------------------------------------------------------- */
     /*

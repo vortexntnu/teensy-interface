@@ -63,6 +63,8 @@ Repeat:
         ! min time between 2 CONVST rising edges: 240ns
 */
 
+uint8_t DMA_test_variable;
+
 namespace adc
 {
 
@@ -82,9 +84,19 @@ namespace adc
     RingBuffer_16bit ChannelC0 = RingBuffer_16bit();
     RingBuffer_32bit sampleTime = RingBuffer_32bit();
 
+    RingBuffer_32bit ChannelA0_DMA = RingBuffer_32bit();
+
     RingBuffer_16bit *ringbuffer_channels_ptr[5];
 
     elapsedMicros stopwatch;
+
+    // * DMA ----------------------
+    uint8_t _RD_reg_value = 1 << _RD;
+    uint8_t vec_RD_values[5];
+
+    DMAChannel dma1 = DMAChannel();
+    DMAChannel dma2 = DMAChannel();
+    DMAChannel dma3 = DMAChannel();
 
     // sets pins accordingly to value (no control signals)
     void
@@ -103,18 +115,19 @@ namespace adc
 
     void init()
     {
-        gpio::set_normal_GPIO(1 << adc::_WR, _WR_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::_RD, _RD_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::_CS, _CS_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::BUSYINT, BUSYINT_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::HWSW, HWSW_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::PARSER, PARSER_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::XCLK, XCLK_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::STBY, STBY_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::CONVST, CONVST_GPIO_PORT_NORMAL);
-        gpio::set_normal_GPIO(1 << adc::RESET, RESET_GPIO_PORT_NORMAL);
+        // ! commented because we test with using the fast pins
+        // gpio::set_normal_GPIO(1 << adc::_WR, _WR_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::_RD, _RD_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::_CS, _CS_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::BUSYINT, BUSYINT_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::HWSW, HWSW_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::PARSER, PARSER_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::XCLK, XCLK_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::STBY, STBY_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::CONVST, CONVST_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(1 << adc::RESET, RESET_GPIO_PORT_NORMAL);
 
-        gpio::set_normal_GPIO(0xFFFF0000, DB_GPIO_PORT_NORMAL);
+        // gpio::set_normal_GPIO(0xFFFF0000, DB_GPIO_PORT_NORMAL);
 
         // BUSYINT as input
         gpio::configPin(BUSYINT, 0, BUSYINT_GPIO_PORT_NORMAL);
@@ -181,11 +194,11 @@ namespace adc
 
         // experimental found values
         PIT::setUpPeriodicISR(readData, clock::get_clockcycles_nano(T_RDL * 20), PIT::PIT_1);
-        Serial.print("Clockcycles PIT1 : ");
-        Serial.println(clock::get_clockcycles_nano(T_RDL * 20));
+        // Serial.print("Clockcycles PIT1 : ");
+        // Serial.println(clock::get_clockcycles_nano(T_RDL * 20));
         PIT::setUpPeriodicISR(next_RD, clock::get_clockcycles_nano(T_RDH * 20), PIT::PIT_2);
-        Serial.print("Clockcycles PIT2 : ");
-        Serial.println(clock::get_clockcycles_nano(T_RDH * 20));
+        // Serial.print("Clockcycles PIT2 : ");
+        // Serial.println(clock::get_clockcycles_nano(T_RDH * 20));
         // ! connect beginRead() to BUSY/INT interrupt -> is done in trigger_conversion()
     }
 
@@ -259,8 +272,9 @@ namespace adc
         // Serial.println("t");
 
         // ringbuffer with the timestamps
-        stopwatch = elapsedMicros();
-        sampleTime.insert(micros());
+        // stopwatch = elapsedMicros();
+        // take a shit load of time, > 1us
+        // sampleTime.insert(micros());
 
         // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
 
@@ -332,8 +346,8 @@ namespace adc
         else
         {
             // ! testing of faster way
-            //gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
-            //PIT::startPeriodic(PIT::PIT_1);
+            // gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+            // PIT::startPeriodic(PIT::PIT_1);
 
             PIT::startPeriodic(PIT::PIT_2);
         }
@@ -358,8 +372,9 @@ namespace adc
 
         // timers are already off, no need to do anything
         gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+        // * to know how long it takes to read the channels
         // unsigned long time_to_read = stopwatch;
-        // Serial.print("time for 1 reading : ");
+        // Serial.print("time 1 read: ");
         // Serial.println(time_to_read);
         //  Serial.println("stop");
         // transferData();
@@ -396,10 +411,62 @@ namespace adc
         }
 
         gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
-        unsigned long time_to_read = stopwatch;
-        // Serial.print("time for 1 reading : ");
+        // unsigned long time_to_read = stopwatch;
+        // Serial.print("time 1 read: ");
         // Serial.println(time_to_read);
     }
+
+    void sample_fasfb(uint16_t nb_samples)
+    {
+        stopwatch = elapsedMicros();
+        elapsedMicros sampling_delta_time = elapsedMicros();
+
+        // taking the number of wanted samples, with no delay
+        for (uint16_t i = 0; i < nb_samples; i++)
+        {
+            // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
+            gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
+
+            // ringbuffer with the timestamps
+            // takes a shit load of time
+            sampleTime.insert(micros()); // should take enough so that the BUSY pin is high
+            millis();
+            // sampleTime.insert(sampling_delta_time);
+            // sampling_delta_time = elapsedMicros();
+
+            // waiting for the busy pin to go low again
+            while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
+            {
+            }
+
+            // gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
+            // gpio::write_pin(_CS, 0, _CS_GPIO_PORT_NORMAL);
+
+            // * write both at the same time to go faster
+            IMXRT_GPIO7.DR_CLEAR = 1 << CONVST | 1 << _CS;
+            // gpio::write_port(0, IMXRT_GPIO7, 1 << CONVST | 1 << _CS);
+
+            for (uint16_t i = 0; i < N_HYDROPHONES; i++)
+            {
+                gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+                // 20ns for data to be valid
+                delayNanoseconds(T_RDL);
+
+                ringbuffer_channels_ptr[i]->insert(read_ADC_par());
+                gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+                // this is already enough delay for 2ns (toggeling takes more than 2ns)
+                // delayNanoseconds(20);
+            }
+
+            gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+            delayNanoseconds(1400);
+        }
+
+        unsigned long time_to_read = stopwatch;
+        Serial.print("Average reading time per sample: ");
+        Serial.println(time_to_read / (float)nb_samples);
+    }
+
     /**
       @brief configures the internal 32-bit config register of the ADC
       @param reg_val: value of the 32bit register
@@ -459,9 +526,11 @@ namespace adc
         Serial.print("FBUSACTUAL : ");
         Serial.println(F_BUS_ACTUAL);
         comp1load[0] = 0xFFFF;
-        (uint16_t)((float)F_BUS_ACTUAL * (float)2);
-        comp1load[1] = (uint16_t)((float)F_BUS_ACTUAL * (float)1);
-        comp1load[2] = (uint16_t)((float)F_BUS_ACTUAL * (float)1);
+        // (uint16_t)((float)F_BUS_ACTUAL * (float)2);
+        // comp1load[1] = (uint16_t)((float)F_BUS_ACTUAL * (float)1);
+        // comp1load[2] = (uint16_t)((float)F_BUS_ACTUAL * (float)1);
+        comp1load[1] = 0x3FFF;
+        comp1load[2] = 0xEFFF;
         // in the Octo library:
         // 1: THTL total duraction for one pulse
         // 2: T0H the time after the GPIO needs to be LOW for a zero
@@ -507,11 +576,12 @@ namespace adc
 
         // route the timer outputs through XBAR to edge trigger DMA request
 
-        CCM_CCGR2 |= CCM_CCGR2_XBAR1(CCM_CCGR_ON); // enabling clock (probably)
+        CCM_CCGR2 |= CCM_CCGR2_XBAR1(CCM_CCGR_ON); // enabling clock for x_bar
         xbar_connect(XBARA1_IN_QTIMER4_TIMER0, XBARA1_OUT_DMA_CH_MUX_REQ30);
         xbar_connect(XBARA1_IN_QTIMER4_TIMER1, XBARA1_OUT_DMA_CH_MUX_REQ31);
         xbar_connect(XBARA1_IN_QTIMER4_TIMER2, XBARA1_OUT_DMA_CH_MUX_REQ94);
         // don't know, p. 3271
+        // enable edge detection, detects both edges, enables DMA request
         XBARA1_CTRL0 = XBARA_CTRL_STS1 | XBARA_CTRL_EDGE1(3) | XBARA_CTRL_DEN1 |
                        XBARA_CTRL_STS0 | XBARA_CTRL_EDGE0(3) | XBARA_CTRL_DEN0;
         XBARA1_CTRL1 = XBARA_CTRL_STS0 | XBARA_CTRL_EDGE0(3) | XBARA_CTRL_DEN0;
@@ -521,10 +591,18 @@ namespace adc
 
     void setting_up_DMA_channels()
     {
+        DMA_test_variable = 0;
+        for (uint8_t i = 0; i < 5; i++)
+        {
+            vec_RD_values[i] = _RD_reg_value;
+        }
+
+        Serial.print("Value of setting value : ");
+        Serial.println(_RD_reg_value);
         // configure DMA channels
         // dma1.begin();
-        // dma1.sourceAddress();
-        // dma1.destinationAddress();
+        // dma1.source(&);
+        // dma1.destination();
         // dma1.TCD->SADDR = bitmask;
         // dma1.TCD->SOFF = 8;
         // dma1.TCD->ATTR = DMA_TCD_ATTR_SSIZE(3) | DMA_TCD_ATTR_SMOD(4) | DMA_TCD_ATTR_DSIZE(2);
@@ -556,10 +634,15 @@ namespace adc
         // dma2.TCD->CSR = 0;
 
         // dma2.begin();
-        // dma2.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_1);
+        dma2.sourceBuffer(vec_RD_values, 5);
+        // dma2.destination(_RD_GPIO_PORT_NORMAL.DR_SET);
+        dma2.destination(DMA_test_variable);
+        dma2.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_1);
         // dma2.attachInterrupt(isr);
 
         // dma3.begin();
+        dma3.source(_RD_reg_value);
+        dma3.destination(DMA_test_variable);
         // dma3.TCD->SADDR = bitmask;
         // dma3.TCD->SOFF = 8;
         // dma3.TCD->ATTR = DMA_TCD_ATTR_SSIZE(3) | DMA_TCD_ATTR_SMOD(4) | DMA_TCD_ATTR_DSIZE(2);
@@ -574,6 +657,9 @@ namespace adc
         // dma3.TCD->BITER_ELINKNO = numbytes * 8;
         // dma3.TCD->CSR = DMA_TCD_CSR_DREQ | DMA_TCD_CSR_DONE;
         // // p.58
-        // dma3.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_2);
+        dma3.triggerAtHardwareEvent(DMAMUX_SOURCE_XBAR1_2);
+
+        dma2.enable();
+        dma3.enable();
     }
 }; // adc

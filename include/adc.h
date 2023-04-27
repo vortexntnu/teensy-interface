@@ -3,6 +3,8 @@
 #include "imxrt.h"
 #include "ringBuffer.h"
 
+extern uint8_t DMA_test_variable;
+
 namespace adc
 {
     const int N_CHANNELS = 8; // no. of channels on the ADC
@@ -29,26 +31,37 @@ namespace adc
     //! if pin is reallocated, change here the port. Never use directly the port
     const int STBY = CORE_PIN2_BIT; // GPIO 4.4
 #define STBY_GPIO_PORT_NORMAL IMXRT_GPIO4
+#define STBY_GPIO_PORT_NORMAL IMXRT_GPIO9
     const int RESET = CORE_PIN3_BIT; // GPIO 4.5
 #define RESET_GPIO_PORT_NORMAL IMXRT_GPIO4
+#define RESET_GPIO_PORT_NORMAL IMXRT_GPIO9
     const int _RD = CORE_PIN4_BIT; // GPIO 4.6
 #define _RD_GPIO_PORT_NORMAL IMXRT_GPIO4
+#define _RD_GPIO_PORT_NORMAL IMXRT_GPIO9
     const int _CS = CORE_PIN11_BIT; // GPIO 2.2
 #define _CS_GPIO_PORT_NORMAL IMXRT_GPIO2
+#define _CS_GPIO_PORT_NORMAL IMXRT_GPIO7
     const int PARSER = CORE_PIN12_BIT; // GPIO 2.1
 #define PARSER_GPIO_PORT_NORMAL IMXRT_GPIO2
+#define PARSER_GPIO_PORT_NORMAL IMXRT_GPIO7
     const int REFEN = CORE_PIN5_BIT; // GPIO 4.8
     const int _WR = CORE_PIN5_BIT;   // same pin as REFEN, depends if PAR or SER
 #define REFEN_GPIO_PORT_NORMAL IMXRT_GPIO4
+#define REFEN_GPIO_PORT_NORMAL IMXRT_GPIO9
 #define _WR_GPIO_PORT_NORMAL IMXRT_GPIO4
+#define _WR_GPIO_PORT_NORMAL IMXRT_GPIO9
     const int HWSW = CORE_PIN33_BIT; // GPIO 4.07
 #define HWSW_GPIO_PORT_NORMAL IMXRT_GPIO4
+#define HWSW_GPIO_PORT_NORMAL IMXRT_GPIO9
     const int CONVST = CORE_PIN34_BIT; // GPIO 2.29
 #define CONVST_GPIO_PORT_NORMAL IMXRT_GPIO2
+#define CONVST_GPIO_PORT_NORMAL IMXRT_GPIO7
     const int ASLEEP = CORE_PIN35_BIT; // GPIO 2.28
 #define ASLEEP_GPIO_PORT_NORMAL IMXRT_GPIO2
+#define ASLEEP_GPIO_PORT_NORMAL IMXRT_GPIO7
     const int BUSYINT = CORE_PIN36_BIT; // GPIO 2.18
 #define BUSYINT_GPIO_PORT_NORMAL IMXRT_GPIO2
+#define BUSYINT_GPIO_PORT_NORMAL IMXRT_GPIO7
 #define BUSYINT_ARDUINO_PIN 36        // pin number to use for built-in arduino libraries
     const int RANGE = CORE_PIN37_BIT; // GPIO 2.19
     const int XCLK = CORE_PIN37_BIT;  // same pin as RANGE, depending if HW or SW
@@ -75,6 +88,7 @@ namespace adc
     const int DB15 = CORE_PIN27_BIT; // GPIO 1.31
 // the port of the DB pins is GPIO port 1 (DMA needs the slower ports)
 #define DB_GPIO_PORT_NORMAL IMXRT_GPIO1
+#define DB_GPIO_PORT_NORMAL IMXRT_GPIO6
 
     // Timing definitions
 
@@ -106,7 +120,7 @@ namespace adc
 #define T_WRL 15
 #define T_WRH 10
 
-#define MIN_SAMP_PERIOD_BLOCKING 10
+#define MIN_SAMP_PERIOD_BLOCKING 3
 #define MIN_SAMP_PERIOD_TIMER 11
 #define MIN_SAMP_PERIOD_DMA 10
 
@@ -116,6 +130,8 @@ namespace adc
     extern RingBuffer_16bit ChannelB0;
     extern RingBuffer_16bit ChannelB1;
     extern RingBuffer_16bit ChannelC0;
+
+    extern RingBuffer_32bit ChannelA0_DMA;
 
     extern RingBuffer_32bit sampleTime;
 
@@ -130,5 +146,8 @@ namespace adc
 
     void triggerConversion(); // tell ADC to start converting.
 
+    void sample_fasfb(uint16_t nb_samples);
+
     void setting_up_timers_DMA();
+    void setting_up_DMA_channels();
 };

@@ -11,7 +11,8 @@ without processing it
 // TODO:
 // make a parent ringbuffer class and have the different buffer sizes inherit it.
 // for variable size
-// and maybe also add a parameter to choose the buffer lenght (easy)
+// and maybe also add a parameter to choose the buffer lenght
+// ! This is not really implemented !!!!!!!!!!!!!!!
 class RingBuffer_16bit
 {
 
@@ -91,7 +92,13 @@ public:
         return item;
     }
 
-    uint32_t operator++(int)
+    uint32_t *get_buffer_pointer()
+    {
+        return buffer;
+    }
+
+    uint32_t
+    operator++(int)
     { // redefines the operator ++, because it is not defined by default (Ringbuffer++ would not work)
         return this->get();
     }
