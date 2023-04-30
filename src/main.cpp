@@ -79,7 +79,7 @@ int main()
 #endif
     // to be safe should be a bit under 1500. If it sampled more than 1500 for some reason,
     // the data gathered will be inconsistent.
-    uint16_t number_samples = 10;
+    uint16_t number_samples = 100;
     uint32_t sample_period = 3; // >= MIN_SAMP_PERIOD_TIMER
     if (number_samples > 1500)  // to not overfill ringbuffer
     {
@@ -93,7 +93,7 @@ int main()
 
     for (uint8_t i = 0; i < 1; i++)
     {
-        adc::sample_fasfb(10);
+        adc::sample_fasfb(100);
     }
     // return 0;
 
@@ -108,8 +108,8 @@ int main()
 
     Serial.println("delta t between samples : ");
 #endif
-    //     // first the time stamps are processed
-    //     // * This is not the only one way of using them
+    // first the time stamps are processed
+    // * This is not the only one way of using them
     //     uint32_t previous_time_sample = adc::sampleTime.get();
     //     while (!adc::sampleTime.isEmpty())
     //     {

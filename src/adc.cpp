@@ -427,7 +427,7 @@ namespace adc
         uint32_t clk_cyc = 0;
 
         // taking the number of wanted samples, with no delay
-        for (uint16_t i = 0; i < nb_samples; i++)
+        for (uint16_t iiint = 0; iiint < nb_samples; iiint++)
         {
             // clk_cyc = ARM_DWT_CYCCNT;
 
@@ -446,11 +446,11 @@ namespace adc
             // sampling_delta_time = elapsedMicros();
             // ! Really important to have a delay before polling BUSY pin, otherwise it is still low and code continues
 
-            delayNanoseconds(10);
+            delayNanoseconds(20);
             // waiting for the busy pin to go low again
             while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
                 ;
-            // delayNanoseconds(500);
+             delayNanoseconds(100);
 
             // clk_cyc = 1;
             // slack_variable = clk_cyc;
@@ -471,15 +471,15 @@ namespace adc
                 // 20ns for data to be valid
                 // delayNanoseconds(T_RDL);
                 // gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
-                IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
-
+                // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+                delayNanoseconds(100);
                 ringbuffer_channels_ptr[i]->insert(read_ADC_par());
                 // read_ADC_par();
                 // gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
                 IMXRT_GPIO9.DR_SET |= (1 << _RD);
-                // IMXRT_GPIO9.DR_SET |= (1 << _RD);
+
                 // this is already enough delay for 2ns (toggeling takes more than 2ns)
-                // delayNanoseconds(10);
+                delayNanoseconds(100);
             }
 
             // * without the loop:
