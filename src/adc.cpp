@@ -450,7 +450,7 @@ namespace adc
             // waiting for the busy pin to go low again
             while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
                 ;
-            delayNanoseconds(500);
+            // delayNanoseconds(500);
 
             // clk_cyc = 1;
             // slack_variable = clk_cyc;
