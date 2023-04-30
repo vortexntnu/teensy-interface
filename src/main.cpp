@@ -64,7 +64,7 @@ int main()
     uint32_t ADC_reg_config;
     // WRITE_EN needs to be set to update REG, internal clock, BUSY mode active high,
     // powering off channel D because we don't need it, internal ref because nothing external connected, reference voltage to 2.5V
-    ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC);
+    ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC); // | (1 << CONFIG_PD_C);
     // value of channel A doubles by dividing range by 2 (works as expected)
     // ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC) | (1 << CONFIG_RANGE_A);
     adc::config(ADC_reg_config);
@@ -79,22 +79,22 @@ int main()
 #endif
     // to be safe should be a bit under 1500. If it sampled more than 1500 for some reason,
     // the data gathered will be inconsistent.
-    uint16_t number_samples = 1400;
+    uint16_t number_samples = 10;
     uint32_t sample_period = 3; // >= MIN_SAMP_PERIOD_TIMER
     if (number_samples > 1500)  // to not overfill ringbuffer
     {
         number_samples = 1500;
     }
     // gathering samples
-    adc::startConversion(sample_period, adc::BLOCKING);
-    delayMicroseconds(sample_period * number_samples); // will sample "number_samples" samples
-    adc::stopConversion();
+    // adc::startConversion(sample_period, adc::BLOCKING);
+    // delayMicroseconds(sample_period * number_samples); // will sample "number_samples" samples
+    // adc::stopConversion();
     // end of gathering samples
 
-    // for (uint8_t i = 0; i < 10; i++)
-    // {
-    //     adc::sample_fasfb(1500);
-    // }
+    for (uint8_t i = 0; i < 1; i++)
+    {
+        adc::sample_fasfb(10);
+    }
     // return 0;
 
     /* ----------------------------------------------------------------------------- */
@@ -108,22 +108,22 @@ int main()
 
     Serial.println("delta t between samples : ");
 #endif
-    // first the time stamps are processed
-    // * This is not the only one way of using them
-    uint32_t previous_time_sample = adc::sampleTime.get();
-    while (!adc::sampleTime.isEmpty())
-    {
-        uint32_t next_time_sample = adc::sampleTime.get();
-#ifdef SERIAL_DEBUG
-        // Serial.print(next_time_sample - previous_time_sample);
-        Serial.print(next_time_sample);
-        Serial.print(", ");
-#endif
-        previous_time_sample = next_time_sample;
-    }
-#ifdef SERIAL_DEBUG
-    Serial.println("");
-#endif
+    //     // first the time stamps are processed
+    //     // * This is not the only one way of using them
+    //     uint32_t previous_time_sample = adc::sampleTime.get();
+    //     while (!adc::sampleTime.isEmpty())
+    //     {
+    //         uint32_t next_time_sample = adc::sampleTime.get();
+    // #ifdef SERIAL_DEBUG
+    //         // Serial.print(next_time_sample - previous_time_sample);
+    //         Serial.print(next_time_sample);
+    //         Serial.print(", ");
+    // #endif
+    //         previous_time_sample = next_time_sample;
+    //     }
+    // #ifdef SERIAL_DEBUG
+    //     Serial.println("");
+    // #endif
     /* ----------------------------------------------------------------------------- */
     /*
         Processing the samples now.
@@ -134,7 +134,29 @@ int main()
     for (uint16_t i = 0; i < number_samples; i++)
     {
 #ifdef SERIAL_DEBUG
+        Serial.print((int16_t)adc::ChannelA0.get());
+        Serial.print(", ");
+#endif
+    }
+#ifdef SERIAL_DEBUG
+    Serial.println("");
+#endif
+
+    for (uint16_t i = 0; i < number_samples; i++)
+    {
+#ifdef SERIAL_DEBUG
         Serial.print((int16_t)adc::ChannelA1.get());
+        Serial.print(", ");
+#endif
+    }
+#ifdef SERIAL_DEBUG
+    Serial.println("");
+#endif
+
+    for (uint16_t i = 0; i < number_samples; i++)
+    {
+#ifdef SERIAL_DEBUG
+        Serial.print((int16_t)adc::ChannelB0.get());
         Serial.print(", ");
 #endif
     }

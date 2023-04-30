@@ -407,8 +407,9 @@ namespace adc
             ringbuffer_channels_ptr[i]->insert(read_ADC_par());
             // test_buffer_array[i][0] = read_ADC_par();
             gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
-            // this is already enough delay for 2ns (toggeling takes more than 2ns)
-            // delayNanoseconds(20);
+            // gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+            //  this is already enough delay for 2ns (toggeling takes more than 2ns)
+            //  delayNanoseconds(20);
         }
 
         gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
@@ -445,12 +446,12 @@ namespace adc
             // sampling_delta_time = elapsedMicros();
             // ! Really important to have a delay before polling BUSY pin, otherwise it is still low and code continues
 
-            delayNanoseconds(10);
+            delayNanoseconds(500);
             // waiting for the busy pin to go low again
             while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
             {
             }
-            // delayNanoseconds(1);
+            delayNanoseconds(500);
             clk_cyc = ARM_DWT_CYCCNT;
 
             // gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);

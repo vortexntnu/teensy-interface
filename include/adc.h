@@ -104,7 +104,7 @@ namespace adc
 #define CONFIG_RANGE_B 23
 #define CONFIG_PD_B 22
 #define CONFIG_RANGE_C 21
-#define CONFIG__PD_C 20
+#define CONFIG_PD_C 20
 #define CONFIG_RANGE_D 19
 #define CONFIG_PD_D 18
 #define CONFIG_REFEN 15
