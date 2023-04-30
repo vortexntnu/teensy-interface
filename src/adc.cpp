@@ -420,7 +420,7 @@ namespace adc
 
     void sample_fasfb(uint16_t nb_samples)
     {
-
+        uint32_t slack_variable;
         stopwatch = elapsedMicros();
         elapsedMicros sampling_delta_time = elapsedMicros();
 
@@ -446,13 +446,17 @@ namespace adc
             // sampling_delta_time = elapsedMicros();
             // ! Really important to have a delay before polling BUSY pin, otherwise it is still low and code continues
 
-            delayNanoseconds(500);
+            delayNanoseconds(10);
             // waiting for the busy pin to go low again
             while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
-            {
-            }
+                ;
             delayNanoseconds(500);
-            clk_cyc = ARM_DWT_CYCCNT;
+
+            // clk_cyc = 1;
+            // slack_variable = clk_cyc;
+            // clk_cyc = 2;
+            // clk_cyc = ARM_DWT_CYCCNT;
+            // delayNanoseconds(500);
 
             // gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
             // gpio::write_pin(_CS, 0, _CS_GPIO_PORT_NORMAL);
@@ -520,6 +524,7 @@ namespace adc
         unsigned long time_to_read = stopwatch;
         Serial.print("Average reading time per sample: ");
         Serial.println(time_to_read / (float)nb_samples);
+        Serial.println(slack_variable);
     }
 
     /**
