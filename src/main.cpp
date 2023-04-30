@@ -41,8 +41,10 @@ int main()
 
     /* ----------------------------------------------------------------------------- */
     // clock of teensy is 600MHz after normal boot
-    clock::setup();
     Serial.print("F_CPU_ACTUAL: ");
+    Serial.println(F_CPU_ACTUAL);
+    clock::setup();
+    Serial.print("F_CPU_ACTUAL, after clock::setup(): ");
     Serial.println(F_CPU_ACTUAL);
     /* ----------------------------------------------------------------------------- */
 
@@ -77,7 +79,7 @@ int main()
 #endif
     // to be safe should be a bit under 1500. If it sampled more than 1500 for some reason,
     // the data gathered will be inconsistent.
-    uint16_t number_samples = 1000;
+    uint16_t number_samples = 1400;
     uint32_t sample_period = 3; // >= MIN_SAMP_PERIOD_TIMER
     if (number_samples > 1500)  // to not overfill ringbuffer
     {
@@ -89,10 +91,10 @@ int main()
     adc::stopConversion();
     // end of gathering samples
 
-    for (uint8_t i = 0; i < 10; i++)
-    {
-        adc::sample_fasfb(1000);
-    }
+    // for (uint8_t i = 0; i < 10; i++)
+    // {
+    //     adc::sample_fasfb(1500);
+    // }
     // return 0;
 
     /* ----------------------------------------------------------------------------- */
@@ -132,7 +134,7 @@ int main()
     for (uint16_t i = 0; i < number_samples; i++)
     {
 #ifdef SERIAL_DEBUG
-        Serial.print((int16_t)adc::ChannelA0.get());
+        Serial.print((int16_t)adc::ChannelA1.get());
         Serial.print(", ");
 #endif
     }

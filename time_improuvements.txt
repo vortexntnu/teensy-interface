@@ -1,0 +1,57 @@
+Accessing register:
+Combine RD and CS into one write instead of two:
+almost no improuvement, but some
+
+elapsedMicros ia actually not 1 us slow, the time to sample was just decreased by so much because the
+BUSY pin was not high yet so this got skipped. 
+BUSY is high max 1.7 us (t_CONV)
+
+t_CONV + t_ACQ = 1.7us + 280ns = 1.98us
+time to convert (time BUSY is high) + time between busy low and the next time CONVST can be high
+This is the min time between to samples.
+MEASURED t_CONV: 385 clockcycles = 641 ns
+Cycles for 1 full reading: 1262 clockcycles = 2.1us
+
+The reading takes 382 clockcycles for 5 hydrophones, so approx 637 ns. 
+For 2 hydrophones it takes 170 clock cycles, so approx 283 ns
+
+When NOT writing the data into the buffers: average reading per sample: 2.14 us, reading: clockcycles: 287
+When writing data into a buffers: total:2.30 us, reading: clockcycles: 382
+--------->Time to write into the buffers:
+        (382 - 287)/5 = 19 clockcycles = 31.6 ns
+
+delay before reading to 20-5ns: 2.22us, for just reading: 332 clockcycles
+20-10ns: no difference than before -> calling the function takes more than 10ns
+20-4: 2.30us, 370 clockcycles   
+20-3: 2.30us, 382 clockcycles
+20+0: 2.30us, 382-377 clockcycles
+20+5: 2.30us, 390-385 clockcycles
+20+20: 2.38us, 442 clockcycles
+20+30: 2.46-2.47, 475 clockcycles
+Writing twice to the RD pin instead of delayNanoseconds:
+2.22us, 328 clockcycles ------> delayNanoseconds not working properly
+With no delay:
+2.13us, 259 clockcycles, but the values are not readible
+
+ONLY reading the parallel interface and not inserting it into buffers: (writing twice RD low)
+2.14us, 285 clockcycles
+Compared to ringbuffer: 2.22us, 328 clockcycles
+----------> inserting into ringbuffer: (328-285)/5 = 8.6 clk
+
+// Read set is done twice, once with function call and once with direct reg access
+2.22us, 339 clockcycles
+
+Good test:
+replaced all the GPIO by straight register adress: (for loop)
+2.12us, 266 clockcycles
+
+Only one is a function call:
+2.14us, 283 clockcycles
+
+All gpio::write function calls:
+2.22us, 333 clockcycles
+
+By replacing the loop by copy paste:
+variable average time per reading: 1.63us up to 1.72
+-> because it is to fast for the adc
+Only for the reading: 295 clockcycles       ---> why this takes longer than loop?   

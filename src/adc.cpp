@@ -405,6 +405,7 @@ namespace adc
             delayNanoseconds(T_RDL);
 
             ringbuffer_channels_ptr[i]->insert(read_ADC_par());
+            // test_buffer_array[i][0] = read_ADC_par();
             gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
             // this is already enough delay for 2ns (toggeling takes more than 2ns)
             // delayNanoseconds(20);
@@ -418,48 +419,101 @@ namespace adc
 
     void sample_fasfb(uint16_t nb_samples)
     {
+
         stopwatch = elapsedMicros();
         elapsedMicros sampling_delta_time = elapsedMicros();
+
+        uint32_t clk_cyc = 0;
 
         // taking the number of wanted samples, with no delay
         for (uint16_t i = 0; i < nb_samples; i++)
         {
+            // clk_cyc = ARM_DWT_CYCCNT;
+
             // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
             gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
-
+            // gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
+            // CONVST_GPIO_PORT_NORMAL.DR_SET |= 1 << CONVST;
             // ringbuffer with the timestamps
-            // takes a shit load of time
-            sampleTime.insert(micros()); // should take enough so that the BUSY pin is high
-            millis();
+            // takes a shit load of time (or maybe not)
+            // sampleTime.insert(micros()); // should take enough so that the BUSY pin is high
+            // millis();
             // sampleTime.insert(sampling_delta_time);
-            // sampling_delta_time = elapsedMicros();
+            // sampleTime.insert(ARM_DWT_CYCCNT);
+            // sampleTime.insert(3);
 
+            // sampling_delta_time = elapsedMicros();
+            // ! Really important to have a delay before polling BUSY pin, otherwise it is still low and code continues
+
+            delayNanoseconds(10);
             // waiting for the busy pin to go low again
             while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
             {
             }
+            // delayNanoseconds(1);
+            clk_cyc = ARM_DWT_CYCCNT;
 
             // gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
             // gpio::write_pin(_CS, 0, _CS_GPIO_PORT_NORMAL);
-
             // * write both at the same time to go faster
             IMXRT_GPIO7.DR_CLEAR = 1 << CONVST | 1 << _CS;
             // gpio::write_port(0, IMXRT_GPIO7, 1 << CONVST | 1 << _CS);
 
             for (uint16_t i = 0; i < N_HYDROPHONES; i++)
             {
-                gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+                // gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+                IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
                 // 20ns for data to be valid
-                delayNanoseconds(T_RDL);
+                // delayNanoseconds(T_RDL);
+                // gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
+                IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
 
                 ringbuffer_channels_ptr[i]->insert(read_ADC_par());
-                gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+                // read_ADC_par();
+                // gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
+                IMXRT_GPIO9.DR_SET |= (1 << _RD);
+                // IMXRT_GPIO9.DR_SET |= (1 << _RD);
                 // this is already enough delay for 2ns (toggeling takes more than 2ns)
-                // delayNanoseconds(20);
+                // delayNanoseconds(10);
             }
 
-            gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
-            delayNanoseconds(1400);
+            // * without the loop:
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // ringbuffer_channels_ptr[0]->insert(read_ADC_par());
+            // IMXRT_GPIO9.DR_SET |= (1 << _RD);
+            // ARM_DWT_CYCCNT;
+
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // ringbuffer_channels_ptr[1]->insert(read_ADC_par());
+            // IMXRT_GPIO9.DR_SET |= (1 << _RD);
+            // ARM_DWT_CYCCNT;
+
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // ringbuffer_channels_ptr[2]->insert(read_ADC_par());
+            // IMXRT_GPIO9.DR_SET |= (1 << _RD);
+            // ARM_DWT_CYCCNT;
+
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // ringbuffer_channels_ptr[3]->insert(read_ADC_par());
+            // IMXRT_GPIO9.DR_SET |= (1 << _RD);
+            // ARM_DWT_CYCCNT;
+
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
+            // ringbuffer_channels_ptr[4]->insert(read_ADC_par());
+            // IMXRT_GPIO9.DR_SET |= (1 << _RD);
+            // * end of instead loop
+
+            // gpio::write_pin(_CS, 1, _CS_GPIO_PORT_NORMAL);
+            _CS_GPIO_PORT_NORMAL.DR_SET |= (1 << _CS);
+            // delayNanoseconds(1000);
+            // sampleTime.insert(ARM_DWT_CYCCNT - clk_cyc);
+            delayNanoseconds(25);
+            sampleTime.insert(ARM_DWT_CYCCNT - clk_cyc);
         }
 
         unsigned long time_to_read = stopwatch;
