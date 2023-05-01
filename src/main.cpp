@@ -29,6 +29,10 @@ enum State
     SAMPLE
 };
 
+String channel_names[5] = {"A0", "A1", "B0", "B1", "C0"};
+
+void print_to_csv(uint16_t nb_samples, uint8_t nb_channels);
+
 int main()
 {
 #ifdef SERIAL_DEBUG
@@ -36,16 +40,16 @@ int main()
     while (!Serial)
     {
     }
-    Serial.printf("Serial connected\r\n");
+    // Serial.printf("Serial connected\r\n");
 #endif
 
     /* ----------------------------------------------------------------------------- */
     // clock of teensy is 600MHz after normal boot
-    Serial.print("F_CPU_ACTUAL: ");
-    Serial.println(F_CPU_ACTUAL);
-    clock::setup();
-    Serial.print("F_CPU_ACTUAL, after clock::setup(): ");
-    Serial.println(F_CPU_ACTUAL);
+    // Serial.print("F_CPU_ACTUAL: ");
+    // Serial.println(F_CPU_ACTUAL);
+    // clock::setup();
+    // Serial.print("F_CPU_ACTUAL, after clock::setup(): ");
+    // Serial.println(F_CPU_ACTUAL);
     /* ----------------------------------------------------------------------------- */
 
 #ifdef TESTING
@@ -64,7 +68,7 @@ int main()
     uint32_t ADC_reg_config;
     // WRITE_EN needs to be set to update REG, internal clock, BUSY mode active high,
     // powering off channel D because we don't need it, internal ref because nothing external connected, reference voltage to 2.5V
-    ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC); // | (1 << CONFIG_PD_C);
+    ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC) | (1 << CONFIG_VREF); // | (1 << CONFIG_PD_C);
     // value of channel A doubles by dividing range by 2 (works as expected)
     // ADC_reg_config = (1 << CONFIG_WRITE_EN) | (1 << CONFIG_PD_D) | (1 << CONFIG_REFEN) | (0x3FF << CONFIG_REFDAC) | (1 << CONFIG_RANGE_A);
     adc::config(ADC_reg_config);
@@ -75,11 +79,11 @@ int main()
         2nd Part: Sampling the data that is then put into the ringbuffers
     */
 #ifdef SERIAL_DEBUG
-    Serial.println("Conversion will be started");
+    // Serial.println("Conversion will be started");
 #endif
     // to be safe should be a bit under 1500. If it sampled more than 1500 for some reason,
     // the data gathered will be inconsistent.
-    uint16_t number_samples = 100;
+    uint16_t number_samples = 1500;
     uint32_t sample_period = 3; // >= MIN_SAMP_PERIOD_TIMER
     if (number_samples > 1500)  // to not overfill ringbuffer
     {
@@ -91,11 +95,21 @@ int main()
     // adc::stopConversion();
     // end of gathering samples
 
+    // ! for printing during sampling
+    // Serial.println(",Time,A0,A1,B0,B1,C1");
+
+    number_samples = 300000;
     for (uint8_t i = 0; i < 1; i++)
     {
-        adc::sample_fasfb(100);
+        adc::sample_fasfb(number_samples);
     }
     // return 0;
+
+    if (42)
+    {
+        print_to_csv(number_samples, 5);
+        return 0;
+    }
 
     /* ----------------------------------------------------------------------------- */
     /* ----------------------------------------------------------------------------- */
@@ -110,20 +124,20 @@ int main()
 #endif
     // first the time stamps are processed
     // * This is not the only one way of using them
-    //     uint32_t previous_time_sample = adc::sampleTime.get();
-    //     while (!adc::sampleTime.isEmpty())
-    //     {
-    //         uint32_t next_time_sample = adc::sampleTime.get();
-    // #ifdef SERIAL_DEBUG
-    //         // Serial.print(next_time_sample - previous_time_sample);
-    //         Serial.print(next_time_sample);
-    //         Serial.print(", ");
-    // #endif
-    //         previous_time_sample = next_time_sample;
-    //     }
-    // #ifdef SERIAL_DEBUG
-    //     Serial.println("");
-    // #endif
+    uint32_t previous_time_sample = adc::sampleTime.get();
+    while (!adc::sampleTime.isEmpty())
+    {
+        uint32_t next_time_sample = adc::sampleTime.get();
+#ifdef SERIAL_DEBUG
+        // Serial.print(next_time_sample - previous_time_sample);
+        Serial.print(next_time_sample);
+        Serial.print(", ");
+#endif
+        previous_time_sample = next_time_sample;
+    }
+#ifdef SERIAL_DEBUG
+    Serial.println("");
+#endif
     /* ----------------------------------------------------------------------------- */
     /*
         Processing the samples now.
@@ -182,4 +196,52 @@ int main()
                 - reset ringbuffer for new sampling
             end of loop
     */
+}
+
+void print_to_csv(uint16_t nb_samples, uint8_t nb_channels)
+{
+    // creating column names for later in pandas
+    Serial.print(",Time");
+    for (uint8_t i = 0; i < nb_channels; i++)
+    {
+        Serial.print(",");
+        Serial.print(channel_names[i]);
+    }
+    Serial.println("");
+
+    for (uint16_t i = 0; i < nb_samples; i++)
+    {
+        Serial.print(i);
+        Serial.print(",");
+        Serial.print((uint32_t)adc::sampleTime.get());
+
+        if (nb_channels >= 1)
+        {
+            Serial.print(",");
+            Serial.print((int16_t)adc::ChannelA0.get());
+        }
+        if (nb_channels >= 2)
+        {
+            Serial.print(",");
+            Serial.print((int16_t)adc::ChannelA1.get());
+        }
+        if (nb_channels >= 3)
+        {
+            Serial.print(",");
+            Serial.print((int16_t)adc::ChannelB0.get());
+        }
+        if (nb_channels >= 4)
+        {
+            Serial.print(",");
+            Serial.print((int16_t)adc::ChannelB1.get());
+        }
+        if (nb_channels >= 5)
+        {
+            Serial.print(",");
+            Serial.print((int16_t)adc::ChannelC0.get());
+        }
+
+        Serial.println("");
+        delay(10);
+    }
 }

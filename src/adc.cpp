@@ -78,8 +78,8 @@ namespace adc
 #endif
 
     RingBuffer_16bit ChannelA0 = RingBuffer_16bit();
-    RingBuffer_16bit ChannelA1 = RingBuffer_16bit();
     RingBuffer_16bit ChannelB0 = RingBuffer_16bit();
+    RingBuffer_16bit ChannelA1 = RingBuffer_16bit();
     RingBuffer_16bit ChannelB1 = RingBuffer_16bit();
     RingBuffer_16bit ChannelC0 = RingBuffer_16bit();
     RingBuffer_32bit sampleTime = RingBuffer_32bit();
@@ -404,7 +404,8 @@ namespace adc
             // should take at least 20ns to trigger timer
             delayNanoseconds(T_RDL);
 
-            ringbuffer_channels_ptr[i]->insert(read_ADC_par());
+            // ringbuffer_channels_ptr[i]->insert(read_ADC_par());
+
             // test_buffer_array[i][0] = read_ADC_par();
             gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
             // gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
@@ -446,11 +447,16 @@ namespace adc
             // sampling_delta_time = elapsedMicros();
             // ! Really important to have a delay before polling BUSY pin, otherwise it is still low and code continues
 
+            sampleTime.insert(micros());
+            // !
+            // Serial.print(iiint);
+            // Serial.print(",");
+            // Serial.print(micros());
             delayNanoseconds(20);
             // waiting for the busy pin to go low again
             while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
                 ;
-             delayNanoseconds(100);
+            delayNanoseconds(100);
 
             // clk_cyc = 1;
             // slack_variable = clk_cyc;
@@ -473,7 +479,14 @@ namespace adc
                 // gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
                 // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
                 delayNanoseconds(100);
+
+                // ! testing memory issues
+                // sampleData[i] = read_ADC_par();
+                //!
+                // Serial.print(",");
+                // Serial.print(read_ADC_par());
                 ringbuffer_channels_ptr[i]->insert(read_ADC_par());
+
                 // read_ADC_par();
                 // gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
                 IMXRT_GPIO9.DR_SET |= (1 << _RD);
@@ -481,7 +494,8 @@ namespace adc
                 // this is already enough delay for 2ns (toggeling takes more than 2ns)
                 delayNanoseconds(100);
             }
-
+            //!
+            // Serial.println("");
             // * without the loop:
             // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
             // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
@@ -517,14 +531,18 @@ namespace adc
             _CS_GPIO_PORT_NORMAL.DR_SET |= (1 << _CS);
             // delayNanoseconds(1000);
             // sampleTime.insert(ARM_DWT_CYCCNT - clk_cyc);
+
+            // ! testing memory issues
+            // transferData();
+
             delayNanoseconds(25);
-            sampleTime.insert(ARM_DWT_CYCCNT - clk_cyc);
+            // sampleTime.insert(ARM_DWT_CYCCNT - clk_cyc);
         }
 
         unsigned long time_to_read = stopwatch;
-        Serial.print("Average reading time per sample: ");
-        Serial.println(time_to_read / (float)nb_samples);
-        Serial.println(slack_variable);
+        // Serial.print("Average reading time per sample: ");
+        // Serial.println(time_to_read / (float)nb_samples);
+        // Serial.println(slack_variable);
     }
 
     /**
