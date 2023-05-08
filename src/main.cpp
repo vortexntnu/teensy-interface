@@ -98,7 +98,7 @@ int main()
     // ! for printing during sampling
     // Serial.println(",Time,A0,A1,B0,B1,C1");
 
-    number_samples = 300000;
+    number_samples = 1500;
     for (uint8_t i = 0; i < 1; i++)
     {
         adc::sample_fasfb(number_samples);

@@ -14,17 +14,90 @@ project_directory_path = Path(".")
 
 data_rel_path = "Data/Output_teensy"
 
-# Ligo_GW_raw_path = project_directory_path / raw_data_rel_path
-# Ligo_GW_processed_path = project_directory_path / processed_data_rel_path
-
 # %%
 # * import data
-sample_to_plot_fast = pd.read_csv(
-    project_directory_path / data_rel_path / "test.csv", index_col=0
+# data needs to be printed in csv format to serial and then saved to csv (with putty, Pyserial or sth else)
+try:
+    sample_to_plot_fast = pd.read_csv(
+        project_directory_path / data_rel_path / "test.csv", index_col=0
+    )
+except FileNotFoundError:
+    print("There is no test.csv file")
+
+# as a reference
+properly_working = pd.read_csv(
+    project_directory_path / data_rel_path / "A0_A1_B0_to_voltage_divider.csv",
+    index_col=0,
 )
-display(sample_to_plot_fast.head())
+
+faulty_hradware_connections = pd.read_csv(
+    project_directory_path / data_rel_path / "faulty_hardware_connections_03052023.csv",
+    index_col=0,
+)
+
+# display(sample_to_plot_fast.head())
+
+# %%
+# *** plotting the reference sampling
+if 0:
+    nb_chan_prop = properly_working.shape[1] - 1
+    nb_samples_prop = properly_working.shape[0]
+    delta_t_prop = np.zeros(properly_working["Time"].size - 1)
+
+    nb_chan_fault = faulty_hradware_connections.shape[1] - 1
+    nb_samples_fault = faulty_hradware_connections.shape[0]
+    delta_t_fault = np.zeros(faulty_hradware_connections["Time"].size - 1)
+
+    fig = plt.figure()
+    ax = plt.subplot(211)
+    si = 0
+    ei = nb_samples_prop - 100
+
+    nb_channels = 5
+    for i in range(nb_channels):
+        plt.plot(
+            properly_working["Time"][si:ei],
+            properly_working[properly_working.columns[i + 1]][si:ei],
+            linewidth=1,
+            alpha=0.7,
+            label=properly_working.columns[i + 1],
+        )
+    ax.legend(loc="lower right", fancybox=True, shadow=True, ncol=1)
+
+    ax = plt.subplot(212)
+    si = 0
+    ei = nb_samples_fault - 100
+
+    for i in range(nb_channels):
+        plt.plot(
+            faulty_hradware_connections["Time"][si:ei],
+            faulty_hradware_connections[faulty_hradware_connections.columns[i + 1]][
+                si:ei
+            ],
+            linewidth=1,
+            alpha=0.7,
+            label=faulty_hradware_connections.columns[i + 1],
+        )
+
+    plt.xlabel("Time [us]")
+    plt.ylabel("Voltage")
+
+    # Put a legend below current axis
+    ax.legend(loc="lower right", fancybox=True, shadow=True, ncol=1)
+
+    # plt.legend()
+    plt.minorticks_on()
+    plt.grid(True, "both")
+    plt.tight_layout()
+    plt.show()
+
 # %%
 # * getting size parameters
+
+try:
+    sample_to_plot_fast
+except NameError:
+    exit()
 
 nb_channels = sample_to_plot_fast.shape[1] - 1
 nb_samples = sample_to_plot_fast.shape[0]
@@ -52,7 +125,7 @@ ei = nb_samples
 ei = nb_samples - 100
 ei = 100
 
-nb_channels = 2
+nb_channels = 5
 for i in range(nb_channels):
     plt.plot(
         sample_to_plot_fast["Time"][si:ei],
