@@ -63,7 +63,7 @@ for i in range(nb_channels):
     )
 
 plt.xlabel("Time [us]")
-plt.ylabel("Strain")
+plt.ylabel("Voltage")
 
 # box = ax.get_position()
 # ax.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
