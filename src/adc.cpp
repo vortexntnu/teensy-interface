@@ -505,7 +505,7 @@ namespace adc
             // waiting for the busy pin to go low again
             while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
                 ;
-            delayNanoseconds(100);
+            delayNanoseconds(10);
 
             // clk_cyc = 1;
             // slack_variable = clk_cyc;
@@ -527,7 +527,7 @@ namespace adc
                 // delayNanoseconds(T_RDL);
                 // gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
                 // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
-                delayNanoseconds(100);
+                // delayNanoseconds(10);
 
                 // Serial.print(",");
                 // Serial.print(read_ADC_par());
@@ -539,7 +539,7 @@ namespace adc
                 IMXRT_GPIO9.DR_SET |= (1 << _RD);
 
                 // this is already enough delay for 2ns (toggeling takes more than 2ns)
-                delayNanoseconds(100);
+                // delayNanoseconds(10);
             }
             //!
             // Serial.println("");
@@ -582,7 +582,7 @@ namespace adc
             // ! testing memory issues
             // transferData();
 
-            delayNanoseconds(25);
+            // delayNanoseconds(25);
             // sampleTime.insert(ARM_DWT_CYCCNT - clk_cyc);
         }
 

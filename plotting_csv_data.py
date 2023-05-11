@@ -76,7 +76,10 @@ nb_channels = 5
 for i in range(nb_channels):
     plt.plot(
         sample_to_plot_fast["Time"][si:ei],
-        sample_to_plot_fast[sample_to_plot_fast.columns[i + 1]][si:ei],
+        sample_to_plot_fast[sample_to_plot_fast.columns[i + 1]][si:ei]
+        * 4
+        * 2.5
+        / 32767,
         linewidth=1,
         alpha=0.7,
         label=sample_to_plot_fast.columns[i + 1],
@@ -118,7 +121,7 @@ if 0:
     for i in range(nb_channels):
         plt.plot(
             properly_working["Time"][si:ei],
-            properly_working[properly_working.columns[i + 1]][si:ei],
+            properly_working[properly_working.columns[i + 1]][si:ei] * 4 * 2.5 / 32767,
             linewidth=1,
             alpha=0.7,
             label=properly_working.columns[i + 1],
