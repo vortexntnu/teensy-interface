@@ -70,12 +70,17 @@ print(delta_t_arr.mean())
 # %%
 # when it is clockcycles
 delta_t_arr = np.zeros(sample_to_plot_fast["Time"].size - 1)
+nb_missing_data = 0
 
 for i in range(sample_to_plot_fast["Time"].size - 1):
-    delta_t_arr[i] = 1 / (
-        (sample_to_plot_fast["Time"][i + 1] - sample_to_plot_fast["Time"][i])
-        * (1 / 600000000)
-    )
+    try:
+        delta_t_arr[i] = 1 / (
+            (sample_to_plot_fast["Time"][i + 1] - sample_to_plot_fast["Time"][i])
+            * (1 / 600000000)
+        )
+    except KeyError:
+        nb_missing_data += 1  # no need because mean takes care of size
+
 print(delta_t_arr.mean())
 # %%
 # * plotting test data ----------------
@@ -114,10 +119,25 @@ plt.grid(True, "both")
 plt.tight_layout()
 plt.show()
 
+for i in range(sample_to_plot_fast["A0"].size - 1):
+    if sample_to_plot_fast["A0"][i] >= 15000:
+        print(
+            "Time:"
+            + str(sample_to_plot_fast["Time"][i])
+            + ", Index: "
+            + str(i)
+            + ", Value: "
+            + str(sample_to_plot_fast["A0"][i])
+            + " in buffer:"
+            + str(i // 1024)
+            + str(" pos:")
+            + str(i % 1024)
+        )
+
 # %%
 # *** plotting the reference sampling
 # ! if no test.csv, only run this cell (and change the if statement)
-if 1:
+if 0:
     nb_chan_prop = properly_working.shape[1] - 1
     nb_samples_prop = properly_working.shape[0]
     delta_t_prop = np.zeros(properly_working["Time"].size - 1)

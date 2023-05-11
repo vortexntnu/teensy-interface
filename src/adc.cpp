@@ -98,6 +98,8 @@ namespace adc
 
     buffer_ptr channel_buff_ptr[5] = {chanA0, chanA1, chanB0, chanB1, chanC0};
 
+    volatile uint8_t stop_sampling;
+
     volatile uint8_t active_buffer; // to know which one is being filled, [0, BUFFER_PER_CHANNEL-1]
     volatile uint16_t sample_index;
     volatile uint8_t buffer_filled[BUFFER_PER_CHANNEL]; // to know which have been filled with new values
@@ -233,7 +235,9 @@ namespace adc
         // value found by trial and error.
 
         sample_index = 0;
+        stop_sampling = 0;
         // * to check if buffer needs to be set to 0.
+        active_buffer = 0;
 
         gpio::write_pin(RESET, 1, RESET_GPIO_PORT_NORMAL);
         delay(1);
@@ -277,6 +281,7 @@ namespace adc
 
     void stopConversion()
     {
+        stop_sampling = 1;
         // no new conversion
         PIT::stopPeriodic(PIT::PIT_0);
         // to finish the ongoing reading
@@ -308,8 +313,12 @@ namespace adc
         gpio::write_pin(CONVST, 1, CONVST_GPIO_PORT_NORMAL);
         // adding timestamp
         // timestamps[active_buffer][sample_index] = micros();
-        timestamps[active_buffer][sample_index] = ARM_DWT_CYCCNT;
-        // ! changing indexing to put data at right place is done at end of read loop
+        if (!stop_sampling)
+        {
+            timestamps[active_buffer][sample_index] = ARM_DWT_CYCCNT;
+        }
+
+        // changing indexing to put data at right place is done at end of read loop
         // ! not yet implemented with timers
 
         // enable interrupt on BUSY/INT pin
@@ -324,8 +333,7 @@ namespace adc
         default:
             break;
         }
-        // * previous version
-        // attachInterrupt(digitalPinToInterrupt(BUSYINT_ARDUINO_PIN), beginRead, FALLING);
+        // clk_cyc = ARM_DWT_CYCCNT;
     }
 
     // resetting channels_processed and CONVST, continues with readData
@@ -358,9 +366,7 @@ namespace adc
         // Serial.println("r");
 
 #ifndef TESTING
-        // sampleData[channels_processed] = read_ADC_par(); /// sampledata len = 8, maybe change if not needed (readloop would only need len = 5)
         ringbuffer_channels_ptr[channels_processed]->insert(read_ADC_par());
-        // ringbuffer_channels_ptr[channels_processed]->insert(read_ADC_par());
 #endif
 #ifdef TESTING
         write_ADC_par(testing_value_par);
@@ -423,12 +429,13 @@ namespace adc
 
     void read_loop()
     {
+        // timestamps[active_buffer][sample_index] = ARM_DWT_CYCCNT - clk_cyc;
+        if (stop_sampling)
+            return;
         NVIC_DISABLE_IRQ(IRQ_PIT);
         // detachInterrupt(BUSYINT_ARDUINO_PIN);
 
         // no need to have CONVST high now
-        // gpio::write_pin(CONVST, 0, CONVST_GPIO_PORT_NORMAL);
-        // gpio::write_pin(_CS, 0, _CS_GPIO_PORT_NORMAL);
         // * write both at the same time to go faster
         IMXRT_GPIO7.DR_CLEAR = 1 << CONVST | 1 << _CS;
 
@@ -441,8 +448,6 @@ namespace adc
 
             // ringbuffer_channels_ptr[i]->insert(read_ADC_par());
             channel_buff_ptr[hydroph][active_buffer][sample_index] = read_ADC_par();
-            // test_buffer_array[i][0] = read_ADC_par();
-            // gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
             IMXRT_GPIO9.DR_SET |= (1 << _RD);
             // gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
             //  this is already enough delay for 2ns (toggeling takes more than 2ns)
@@ -458,16 +463,12 @@ namespace adc
         {
 
             // unsigned long time_to_read = stopwatch;
-            // ! to remove -----------------------
-            // stopConversion();
-            // Serial.print("Av/spl:");
-            // Serial.println(time_to_read / (float)SAMPLE_LENGTH_ADC);
-            // stopwatch = elapsedMicros();
 
             // updating global variables
             buffer_filled[active_buffer] = 1;
             sample_index = sample_index % SAMPLE_LENGTH_ADC;
-            active_buffer = (active_buffer + 1) % 3;
+            active_buffer = (active_buffer + 1) % BUFFER_PER_CHANNEL;
+            buffer_filled[active_buffer] = 0;
         }
         // timestamps[active_buffer][sample_index] = ARM_DWT_CYCCNT - clk_cyc;
         // unsigned long time_to_read = stopwatch;

@@ -94,10 +94,64 @@ int main()
     // gathering samples
     adc::startConversion(sample_period, adc::BLOCKING);
     // delayMicroseconds(sample_period * number_samples); // will sample "number_samples" samples
-    while (!adc::buffer_filled[2])
+    uint8_t buffer_to_check = adc::active_buffer;
+    // Serial.println(buffer_to_check);
+    uint8_t found = 0;
+    while (!found)
+    {
+        while (!adc::buffer_filled[buffer_to_check])
+        {
+            ;
+        }
+        // doing the necessary checks
+        for (uint16_t index = 0; index < SAMPLE_LENGTH_ADC; index++)
+        {
+            // here checking if channel A0 voltage is higher than 15000 (=4.68V)
+            if (adc::channel_buff_ptr[0][buffer_to_check][index] > (int16_t)15000)
+            {
+                // found to one once the event happend (will be peak detection)
+                found = 1;
+                break;
+            }
+        }
+
+        /*
+        THIS IS WHAT NEED TO BE CHANGED TO TEST CONTINOUSLY WITH PEAK DETECTION
+        !! might be changed depending on which channel the hydrophone is connected. Check also plots!!!!
+        q15_t *samplesFiltered = filter_butterwort_9th_order_50kHz(adc::channel_buff_ptr[0][buffer_to_check]);
+
+        // Preform FFT calculations on filtered samples
+        q15_t *FFTResultsRaw = FFT_raw(samplesFiltered);
+        q15_t *FFTResults = FFT_mag(FFTResultsRaw);
+        q31_t **peaks = peak_detection(FFTResultsRaw, FFTResults);
+        int lengthOfPeakArray = peaks[0][0];
+
+         ------------------------------------------------
+        */
+
+        // ------ end of checks
+        // to check that the next buffer is filled
+
+        buffer_to_check = (buffer_to_check + 1) % BUFFER_PER_CHANNEL;
+        if (buffer_to_check != adc::active_buffer)
+        {
+            found = 2;
+            // comment this if code should continue, but it will be unexpected behaviour
+            // break;
+        }
+    }
+
+    if (found == 2)
+    {
+        Serial.println("The check on the buffer took longer than filling the next one");
+        return 1;
+    }
+    // lets the next buffer fill to have 3 buffers to make calculations for pinger detection
+    while (!adc::buffer_filled[buffer_to_check])
     {
         ;
     }
+
     adc::stopConversion();
     print_all_buffers_to_csv(number_samples, 5);
     return 0;
@@ -269,22 +323,21 @@ void print_all_buffers_to_csv(uint16_t nb_samples, uint8_t nb_channels)
     }
     Serial.println("");
 
-    // uint8_t to_print_buffer = adc::active_buffer;
-    uint8_t to_print_buffer = 0;
-    // to_print_buffer = (to_print_buffer + 1) % BUFFER_PER_CHANNEL;
+    // active buffer is one further than the last filled one, which is the oldest one now
+    uint8_t to_print_buffer = adc::active_buffer;
+    uint8_t index_buffer = 0;
+
     // printing sample values
     for (uint8_t buff = 0; buff < BUFFER_PER_CHANNEL; buff++)
     {
         for (uint16_t sample_nb = 0; sample_nb < SAMPLE_LENGTH_ADC; sample_nb++)
         {
-            if (to_print_buffer * SAMPLE_LENGTH_ADC + sample_nb >= nb_samples)
+            if (index_buffer * SAMPLE_LENGTH_ADC + sample_nb >= nb_samples)
             {
                 return;
             }
-            Serial.print(to_print_buffer * SAMPLE_LENGTH_ADC + sample_nb);
-            // Serial.print(to_print_buffer);
-            // Serial.print("_");
-            // Serial.print(sample_nb);
+            // sample number
+            Serial.print(index_buffer * SAMPLE_LENGTH_ADC + sample_nb);
             Serial.print(",");
             Serial.print((uint32_t)adc::timestamps[to_print_buffer][sample_nb]);
 
@@ -293,35 +346,12 @@ void print_all_buffers_to_csv(uint16_t nb_samples, uint8_t nb_channels)
                 Serial.print(",");
                 Serial.print((int16_t)adc::channel_buff_ptr[channel][to_print_buffer][sample_nb]);
             }
-
-            // if (nb_channels >= 1)
-            // {
-            //     Serial.print(",");
-            //     Serial.print((int16_t)adc::ChannelA0.get());
-            // }
-            // if (nb_channels >= 2)
-            // {
-            //     Serial.print(",");
-            //     Serial.print((int16_t)adc::ChannelA1.get());
-            // }
-            // if (nb_channels >= 3)
-            // {
-            //     Serial.print(",");
-            //     Serial.print((int16_t)adc::ChannelB0.get());
-            // }
-            // if (nb_channels >= 4)
-            // {
-            //     Serial.print(",");
-            //     Serial.print((int16_t)adc::ChannelB1.get());
-            // }
-            // if (nb_channels >= 5)
-            // {
-            //     Serial.print(",");
-            //     Serial.print((int16_t)adc::ChannelC0.get());
-            // }
             Serial.println("");
             delay(10);
         }
+        // next buffer
+        adc::buffer_filled[to_print_buffer] = 0;
         to_print_buffer = (to_print_buffer + 1) % BUFFER_PER_CHANNEL;
+        index_buffer++; // starts at 0 so will never go over 3
     }
 }
