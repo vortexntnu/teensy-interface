@@ -58,13 +58,17 @@ print(sample_to_plot_fast["Time"].mean() * 1 / 600000000)
 # %%
 # * calculating sample frequency
 delta_t_arr = np.zeros(sample_to_plot_fast["Time"].size - 1)
+nb_missing_data = 0
 
 for i in range(sample_to_plot_fast["Time"].size - 1):
-    delta_t_arr[i] = (
-        1
-        / (sample_to_plot_fast["Time"][i + 1] - sample_to_plot_fast["Time"][i])
-        * 1000000
-    )
+    try:
+        delta_t_arr[i] = (
+            1
+            / (sample_to_plot_fast["Time"][i + 1] - sample_to_plot_fast["Time"][i])
+            * 1000000
+        )
+    except KeyError:
+        nb_missing_data += 1  # no need because mean takes care of size
 
 print(delta_t_arr.mean())
 # %%
