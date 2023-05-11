@@ -88,6 +88,19 @@ namespace adc
 
     RingBuffer_16bit *ringbuffer_channels_ptr[5];
 
+    sample_buff_3_1024 chanA0;
+    sample_buff_3_1024 chanA1;
+    sample_buff_3_1024 chanB0;
+    sample_buff_3_1024 chanB1;
+    sample_buff_3_1024 chanC0;
+
+    time_buff_3_1024 timestamps;
+
+    buffer_ptr channel_buff_ptr[5] = {chanA0, chanA1, chanB0, chanB1, chanC0};
+
+    uint8_t active_buffer;                     // to know which one is being filled, [0, BUFFER_PER_CHANNEL-1]
+    uint8_t buffer_filled[BUFFER_PER_CHANNEL]; // to know which have been filled with new values
+
     elapsedMicros stopwatch;
 
     // * DMA ----------------------
@@ -185,12 +198,18 @@ namespace adc
         clock::setup(); /// the clockfrequency needs to be defined somewhere, does it need to be called also if adc is not init()
         PIT::setup();
 
-        // setting pointers for the ringbuffers
+        // ! setting pointers for the ringbuffers, maybe not used anymore
         ringbuffer_channels_ptr[0] = &ChannelA0;
         ringbuffer_channels_ptr[1] = &ChannelA1;
         ringbuffer_channels_ptr[2] = &ChannelB0;
         ringbuffer_channels_ptr[3] = &ChannelB1;
         ringbuffer_channels_ptr[4] = &ChannelC0;
+
+        active_buffer = 0;
+        for (uint8_t i = 0; i < BUFFER_PER_CHANNEL; i++)
+        {
+            buffer_filled[i] = 0; // no sampling yet
+        }
 
         // experimental found values
         PIT::setUpPeriodicISR(readData, clock::get_clockcycles_nano(T_RDL * 20), PIT::PIT_1);
@@ -210,6 +229,10 @@ namespace adc
         // ? do it in one call?
         // PIT::setUpPeriodicISR(triggerConversion, clock::get_clockcycles_micro(1000000), PIT::PIT_0);
         // value found by trial and error.
+
+        gpio::write_pin(RESET, 1, RESET_GPIO_PORT_NORMAL);
+        delay(1);
+        gpio::write_pin(RESET, 0, RESET_GPIO_PORT_NORMAL);
 
         ADC_mode = sample_mode;
         uint32_t bounded_period = sample_period_us;
@@ -421,15 +444,36 @@ namespace adc
 
     void sample_fasfb(uint16_t nb_samples)
     {
+        // resetting ADC to make sure it behaves the same
+        gpio::write_pin(RESET, 1, RESET_GPIO_PORT_NORMAL);
+        delay(10);
+        gpio::write_pin(RESET, 0, RESET_GPIO_PORT_NORMAL);
+        delay(100);
+
         uint32_t slack_variable;
         stopwatch = elapsedMicros();
         elapsedMicros sampling_delta_time = elapsedMicros();
 
         uint32_t clk_cyc = 0;
 
+        //! decide what to do with data sampled before
+        active_buffer = 0;
+        for (uint8_t i = 0; i < BUFFER_PER_CHANNEL; i++)
+        {
+            buffer_filled[i] = 0; // no sampling yet
+        }
+
         // taking the number of wanted samples, with no delay
         for (uint16_t iiint = 0; iiint < nb_samples; iiint++)
         {
+            if (iiint >= SAMPLE_LENGTH_ADC * (1 + active_buffer))
+            {
+                active_buffer = (active_buffer + 1) % 3;
+            }
+            // Serial.print("Active buffer : ");
+            // Serial.print(active_buffer);
+            // Serial.print(",    current index : ");
+            // Serial.println(iiint % SAMPLE_LENGTH_ADC);
             // clk_cyc = ARM_DWT_CYCCNT;
 
             // will pull the CONVST line high, that indicates to the adc to start conversion on all channels
@@ -447,12 +491,17 @@ namespace adc
             // sampling_delta_time = elapsedMicros();
             // ! Really important to have a delay before polling BUSY pin, otherwise it is still low and code continues
 
-            sampleTime.insert(micros());
+            // sampleTime.insert(micros());
             // !
-            // Serial.print(iiint);
-            // Serial.print(",");
-            // Serial.print(micros());
+            timestamps[active_buffer][iiint % SAMPLE_LENGTH_ADC] = micros();
+
             delayNanoseconds(20);
+            // to make sure the pin goes high
+            // while (!gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
+            // {
+            //     ;
+            // }
+
             // waiting for the busy pin to go low again
             while (gpio::read_pin(BUSYINT, BUSYINT_GPIO_PORT_NORMAL))
                 ;
@@ -470,7 +519,7 @@ namespace adc
             IMXRT_GPIO7.DR_CLEAR = 1 << CONVST | 1 << _CS;
             // gpio::write_port(0, IMXRT_GPIO7, 1 << CONVST | 1 << _CS);
 
-            for (uint16_t i = 0; i < N_HYDROPHONES; i++)
+            for (uint16_t hydroph = 0; hydroph < N_HYDROPHONES; hydroph++)
             {
                 // gpio::write_pin(_RD, 0, _RD_GPIO_PORT_NORMAL);
                 IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
@@ -480,13 +529,11 @@ namespace adc
                 // IMXRT_GPIO9.DR_CLEAR |= (1 << _RD);
                 delayNanoseconds(100);
 
-                // ! testing memory issues
-                // sampleData[i] = read_ADC_par();
-                //!
                 // Serial.print(",");
                 // Serial.print(read_ADC_par());
-                ringbuffer_channels_ptr[i]->insert(read_ADC_par());
-
+                // ringbuffer_channels_ptr[i]->insert(read_ADC_par());
+                // !
+                channel_buff_ptr[hydroph][active_buffer][iiint % SAMPLE_LENGTH_ADC] = read_ADC_par();
                 // read_ADC_par();
                 // gpio::write_pin(_RD, 1, _RD_GPIO_PORT_NORMAL);
                 IMXRT_GPIO9.DR_SET |= (1 << _RD);

@@ -137,6 +137,27 @@ namespace adc
 
     static uint16_t sampleData[N_CHANNELS]; // array where the measurements will be stored before put into ringbuffer
 
+// * new way
+#define SAMPLE_LENGTH_ADC 1024
+#define BUFFER_PER_CHANNEL 3
+    typedef int16_t (*buffer_ptr)[SAMPLE_LENGTH_ADC]; // the number of rows will be specified when creating variable
+    typedef int16_t sample_buff_3_1024[BUFFER_PER_CHANNEL][SAMPLE_LENGTH_ADC];
+    typedef int32_t time_buff_3_1024[BUFFER_PER_CHANNEL][SAMPLE_LENGTH_ADC];
+
+    extern sample_buff_3_1024 chanA0;
+    extern sample_buff_3_1024 chanA1;
+    extern sample_buff_3_1024 chanB0;
+    extern sample_buff_3_1024 chanB1;
+    extern sample_buff_3_1024 chanC0;
+
+    extern time_buff_3_1024 timestamps;
+
+    // pointer to the buffers of each channel, in order A0,A1,B0,B1,C0
+    extern buffer_ptr channel_buff_ptr[5];
+
+    extern uint8_t active_buffer;                     // to know which one is being filled, [0, BUFFER_PER_CHANNEL-1]
+    extern uint8_t buffer_filled[BUFFER_PER_CHANNEL]; // to know which have been filled with new values
+
     void init();                   // inits pins
     void setup();                  // setup the ADC
     void config(uint32_t reg_val); // configure ADC so it's ready to send data.

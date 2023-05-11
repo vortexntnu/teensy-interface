@@ -38,7 +38,68 @@ faulty_hradware_connections = pd.read_csv(
 # display(sample_to_plot_fast.head())
 
 # %%
+# * getting size parameters
+
+try:
+    sample_to_plot_fast
+except NameError:
+    exit()
+
+nb_channels = sample_to_plot_fast.shape[1] - 1
+nb_samples = sample_to_plot_fast.shape[0]
+
+print(nb_channels)
+print(nb_samples)
+
+# %%
+# * calculating sample frequency
+delta_t_arr = np.zeros(sample_to_plot_fast["Time"].size - 1)
+
+for i in range(sample_to_plot_fast["Time"].size - 1):
+    delta_t_arr[i] = (
+        1
+        / (sample_to_plot_fast["Time"][i + 1] - sample_to_plot_fast["Time"][i])
+        * 1000000
+    )
+
+print(delta_t_arr.mean())
+# %%
+# * plotting test data ----------------
+fig = plt.figure()
+ax = plt.subplot(111)
+si = 50
+ei = nb_samples
+ei = nb_samples - 100
+# ei = 100
+
+nb_channels = 5
+for i in range(nb_channels):
+    plt.plot(
+        sample_to_plot_fast["Time"][si:ei],
+        sample_to_plot_fast[sample_to_plot_fast.columns[i + 1]][si:ei],
+        linewidth=1,
+        alpha=0.7,
+        label=sample_to_plot_fast.columns[i + 1],
+    )
+
+plt.xlabel("Time [us]")
+plt.ylabel("Voltage")
+
+# box = ax.get_position()
+# ax.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
+
+# Put a legend below current axis
+ax.legend(loc="lower right", fancybox=True, shadow=True, ncol=1)
+
+# plt.legend()
+plt.minorticks_on()
+plt.grid(True, "both")
+plt.tight_layout()
+plt.show()
+
+# %%
 # *** plotting the reference sampling
+# ! if no test.csv, only run this cell (and change the if statement)
 if 0:
     nb_chan_prop = properly_working.shape[1] - 1
     nb_samples_prop = properly_working.shape[0]
@@ -90,64 +151,5 @@ if 0:
     plt.grid(True, "both")
     plt.tight_layout()
     plt.show()
-
-# %%
-# * getting size parameters
-
-try:
-    sample_to_plot_fast
-except NameError:
-    exit()
-
-nb_channels = sample_to_plot_fast.shape[1] - 1
-nb_samples = sample_to_plot_fast.shape[0]
-
-print(nb_channels)
-print(nb_samples)
-
-# %%
-# * calculating sample frequency
-delta_t_arr = np.zeros(sample_to_plot_fast["Time"].size - 1)
-
-for i in range(sample_to_plot_fast["Time"].size - 1):
-    delta_t_arr[i] = (
-        1
-        / (sample_to_plot_fast["Time"][i + 1] - sample_to_plot_fast["Time"][i])
-        * 1000000
-    )
-
-print(delta_t_arr.mean())
-# %%
-fig = plt.figure()
-ax = plt.subplot(111)
-si = 50
-ei = nb_samples
-ei = nb_samples - 100
-ei = 100
-
-nb_channels = 5
-for i in range(nb_channels):
-    plt.plot(
-        sample_to_plot_fast["Time"][si:ei],
-        sample_to_plot_fast[sample_to_plot_fast.columns[i + 1]][si:ei],
-        linewidth=1,
-        alpha=0.7,
-        label=sample_to_plot_fast.columns[i + 1],
-    )
-
-plt.xlabel("Time [us]")
-plt.ylabel("Voltage")
-
-# box = ax.get_position()
-# ax.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
-
-# Put a legend below current axis
-ax.legend(loc="lower right", fancybox=True, shadow=True, ncol=1)
-
-# plt.legend()
-plt.minorticks_on()
-plt.grid(True, "both")
-plt.tight_layout()
-plt.show()
 
 # %%

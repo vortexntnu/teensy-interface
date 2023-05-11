@@ -32,6 +32,7 @@ enum State
 String channel_names[5] = {"A0", "A1", "B0", "B1", "C0"};
 
 void print_to_csv(uint16_t nb_samples, uint8_t nb_channels);
+void print_all_buffers_to_csv(uint16_t nb_samples, uint8_t nb_channels);
 
 int main()
 {
@@ -84,8 +85,8 @@ int main()
     // to be safe should be a bit under 1500. If it sampled more than 1500 for some reason,
     // the data gathered will be inconsistent.
     uint16_t number_samples = 1500;
-    uint32_t sample_period = 3; // >= MIN_SAMP_PERIOD_TIMER
-    if (number_samples > 1500)  // to not overfill ringbuffer
+    uint32_t sample_period = 10; // >= MIN_SAMP_PERIOD_TIMER
+    if (number_samples > 1500)   // to not overfill ringbuffer
     {
         number_samples = 1500;
     }
@@ -98,7 +99,7 @@ int main()
     // ! for printing during sampling
     // Serial.println(",Time,A0,A1,B0,B1,C1");
 
-    number_samples = 1500;
+    number_samples = SAMPLE_LENGTH_ADC * 1;
     for (uint8_t i = 0; i < 1; i++)
     {
         adc::sample_fasfb(number_samples);
@@ -107,7 +108,7 @@ int main()
 
     if (42)
     {
-        print_to_csv(number_samples, 5);
+        print_all_buffers_to_csv(number_samples, 5);
         return 0;
     }
 
@@ -243,5 +244,77 @@ void print_to_csv(uint16_t nb_samples, uint8_t nb_channels)
 
         Serial.println("");
         delay(10);
+    }
+}
+
+void print_all_buffers_to_csv(uint16_t nb_samples, uint8_t nb_channels)
+{
+    if (nb_samples > BUFFER_PER_CHANNEL * SAMPLE_LENGTH_ADC)
+    {
+        nb_samples = BUFFER_PER_CHANNEL * SAMPLE_LENGTH_ADC;
+    }
+    // creating column names for later in pandas
+    Serial.print(",Time");
+    for (uint8_t i = 0; i < nb_channels; i++)
+    {
+        Serial.print(",");
+        Serial.print(channel_names[i]);
+    }
+    Serial.println("");
+
+    // uint8_t to_print_buffer = adc::active_buffer;
+    uint8_t to_print_buffer = 0;
+    // to_print_buffer = (to_print_buffer + 1) % BUFFER_PER_CHANNEL;
+    // printing sample values
+    for (uint8_t buff = 0; buff < BUFFER_PER_CHANNEL; buff++)
+    {
+        for (uint16_t sample_nb = 0; sample_nb < SAMPLE_LENGTH_ADC; sample_nb++)
+        {
+            if (to_print_buffer * SAMPLE_LENGTH_ADC + sample_nb >= nb_samples)
+            {
+                return;
+            }
+            Serial.print(to_print_buffer * SAMPLE_LENGTH_ADC + sample_nb);
+            // Serial.print(to_print_buffer);
+            // Serial.print("_");
+            // Serial.print(sample_nb);
+            Serial.print(",");
+            Serial.print((uint32_t)adc::timestamps[to_print_buffer][sample_nb]);
+
+            for (uint8_t channel = 0; channel < nb_channels; channel++)
+            {
+                Serial.print(",");
+                Serial.print((int16_t)adc::channel_buff_ptr[channel][to_print_buffer][sample_nb]);
+            }
+
+            // if (nb_channels >= 1)
+            // {
+            //     Serial.print(",");
+            //     Serial.print((int16_t)adc::ChannelA0.get());
+            // }
+            // if (nb_channels >= 2)
+            // {
+            //     Serial.print(",");
+            //     Serial.print((int16_t)adc::ChannelA1.get());
+            // }
+            // if (nb_channels >= 3)
+            // {
+            //     Serial.print(",");
+            //     Serial.print((int16_t)adc::ChannelB0.get());
+            // }
+            // if (nb_channels >= 4)
+            // {
+            //     Serial.print(",");
+            //     Serial.print((int16_t)adc::ChannelB1.get());
+            // }
+            // if (nb_channels >= 5)
+            // {
+            //     Serial.print(",");
+            //     Serial.print((int16_t)adc::ChannelC0.get());
+            // }
+            Serial.println("");
+            delay(10);
+        }
+        to_print_buffer = (to_print_buffer + 1) % BUFFER_PER_CHANNEL;
     }
 }
