@@ -49,12 +49,12 @@ namespace clock
 #endif
     }
 
-    uint32_t get_clockcycles_micro(uint32_t microseconds)
+    uint32_t get_clockcycles_micro(float microseconds)
     {
         return microseconds * (PITclockFreq / 1000000.0);
     }
 
-    uint32_t get_clockcycles_nano(uint32_t nanoseconds)
+    uint32_t get_clockcycles_nano(float nanoseconds)
     {
         return nanoseconds * (PITclockFreq / 1000000000.0);
     }

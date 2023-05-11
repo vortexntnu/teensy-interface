@@ -84,16 +84,23 @@ int main()
 #endif
     // to be safe should be a bit under 1500. If it sampled more than 1500 for some reason,
     // the data gathered will be inconsistent.
-    uint16_t number_samples = 1500;
-    uint32_t sample_period = 10; // >= MIN_SAMP_PERIOD_TIMER
-    if (number_samples > 1500)   // to not overfill ringbuffer
+    uint16_t number_samples = 3 * SAMPLE_LENGTH_ADC;
+    float sample_period = 2.3; // >= MIN_SAMP_PERIOD_TIMER
+    // Serial.println(clock::get_clockcycles_micro(sample_period));
+    if (number_samples > 3 * SAMPLE_LENGTH_ADC) // to not overfill ringbuffer
     {
-        number_samples = 1500;
+        number_samples = 3 * SAMPLE_LENGTH_ADC;
     }
     // gathering samples
-    // adc::startConversion(sample_period, adc::BLOCKING);
+    adc::startConversion(sample_period, adc::BLOCKING);
     // delayMicroseconds(sample_period * number_samples); // will sample "number_samples" samples
-    // adc::stopConversion();
+    while (!adc::buffer_filled[2])
+    {
+        ;
+    }
+    adc::stopConversion();
+    print_all_buffers_to_csv(number_samples, 5);
+    return 0;
     // end of gathering samples
 
     // ! for printing during sampling

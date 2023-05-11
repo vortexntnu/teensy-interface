@@ -11,7 +11,7 @@ namespace clock
     void setup();
 
     // clockcycles for microseconds to use in the PITs
-    uint32_t get_clockcycles_micro(uint32_t microseconds);
+    uint32_t get_clockcycles_micro(float microseconds);
     // clockcycles for nanoseconds to use in the PITs
-    uint32_t get_clockcycles_nano(uint32_t nanoseconds);
+    uint32_t get_clockcycles_nano(float nanoseconds);
 };

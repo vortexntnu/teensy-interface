@@ -120,7 +120,7 @@ namespace adc
 #define T_WRL 15
 #define T_WRH 10
 
-#define MIN_SAMP_PERIOD_BLOCKING 3
+#define MIN_SAMP_PERIOD_BLOCKING 2.3
 #define MIN_SAMP_PERIOD_TIMER 11
 #define MIN_SAMP_PERIOD_DMA 10
 
@@ -155,15 +155,15 @@ namespace adc
     // pointer to the buffers of each channel, in order A0,A1,B0,B1,C0
     extern buffer_ptr channel_buff_ptr[5];
 
-    extern uint8_t active_buffer;                     // to know which one is being filled, [0, BUFFER_PER_CHANNEL-1]
-    extern uint8_t buffer_filled[BUFFER_PER_CHANNEL]; // to know which have been filled with new values
+    volatile extern uint8_t active_buffer;                     // to know which one is being filled, [0, BUFFER_PER_CHANNEL-1]
+    volatile extern uint8_t buffer_filled[BUFFER_PER_CHANNEL]; // to know which have been filled with new values
 
     void init();                   // inits pins
     void setup();                  // setup the ADC
     void config(uint32_t reg_val); // configure ADC so it's ready to send data.
 
-    void startConversion(uint32_t sample_period_us, ADC_sample_mode sample_mode = BLOCKING); // setup periodic timer interrupts.
-    void stopConversion();                                                                   // stop periodic timer interrupts
+    void startConversion(float sample_period_us, ADC_sample_mode sample_mode = BLOCKING); // setup periodic timer interrupts.
+    void stopConversion();                                                                // stop periodic timer interrupts
 
     void triggerConversion(); // tell ADC to start converting.
 

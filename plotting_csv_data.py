@@ -52,6 +52,10 @@ print(nb_channels)
 print(nb_samples)
 
 # %%
+# mean of time stamps, when difference
+print(sample_to_plot_fast["Time"].mean() * 1 / 600000000)
+
+# %%
 # * calculating sample frequency
 delta_t_arr = np.zeros(sample_to_plot_fast["Time"].size - 1)
 
@@ -64,22 +68,32 @@ for i in range(sample_to_plot_fast["Time"].size - 1):
 
 print(delta_t_arr.mean())
 # %%
+# when it is clockcycles
+delta_t_arr = np.zeros(sample_to_plot_fast["Time"].size - 1)
+
+for i in range(sample_to_plot_fast["Time"].size - 1):
+    delta_t_arr[i] = 1 / (
+        (sample_to_plot_fast["Time"][i + 1] - sample_to_plot_fast["Time"][i])
+        * (1 / 600000000)
+    )
+print(delta_t_arr.mean())
+# %%
 # * plotting test data ----------------
 fig = plt.figure()
 ax = plt.subplot(111)
 si = 50
 ei = nb_samples
 ei = nb_samples - 100
-# ei = 100
+ei = 500
 
 nb_channels = 5
 for i in range(nb_channels):
     plt.plot(
         sample_to_plot_fast["Time"][si:ei],
         sample_to_plot_fast[sample_to_plot_fast.columns[i + 1]][si:ei]
-        * 4
-        * 2.5
-        / 32767,
+        * 4  # 4 times
+        * 2.5  # VREF
+        / 32767,  # max representable value 16bit, to get volts
         linewidth=1,
         alpha=0.7,
         label=sample_to_plot_fast.columns[i + 1],
@@ -103,7 +117,7 @@ plt.show()
 # %%
 # *** plotting the reference sampling
 # ! if no test.csv, only run this cell (and change the if statement)
-if 0:
+if 1:
     nb_chan_prop = properly_working.shape[1] - 1
     nb_samples_prop = properly_working.shape[0]
     delta_t_prop = np.zeros(properly_working["Time"].size - 1)
