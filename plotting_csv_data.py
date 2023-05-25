@@ -93,7 +93,7 @@ ax = plt.subplot(111)
 si = 50
 ei = nb_samples
 ei = nb_samples - 100
-ei = 500
+# ei = 500
 
 nb_channels = 5
 for i in range(nb_channels):
@@ -125,7 +125,7 @@ plt.show()
 
 for i in range(sample_to_plot_fast["A0"].size - 1):
     try:
-        if sample_to_plot_fast["A0"][i] >= 15000:
+        if sample_to_plot_fast["A0"][i] >= 10000:
             print(
                 "Time:"
                 + str(sample_to_plot_fast["Time"][i])

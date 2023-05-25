@@ -113,7 +113,7 @@ int main()
         for (uint16_t index = 0; index < SAMPLE_LENGTH_ADC; index++)
         {
             // here checking if channel A0 voltage is higher than 15000 (=4.68V)
-            if (adc::channel_buff_ptr[1][buffer_to_check][index] > (int16_t)15000)
+            if (adc::channel_buff_ptr[1][buffer_to_check][index] > (int16_t)10000)
             {
                 // found to one once the event happend (will be peak detection)
                 found = 1;
