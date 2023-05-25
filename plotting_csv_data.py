@@ -124,19 +124,22 @@ plt.tight_layout()
 plt.show()
 
 for i in range(sample_to_plot_fast["A0"].size - 1):
-    if sample_to_plot_fast["A0"][i] >= 15000:
-        print(
-            "Time:"
-            + str(sample_to_plot_fast["Time"][i])
-            + ", Index: "
-            + str(i)
-            + ", Value: "
-            + str(sample_to_plot_fast["A0"][i])
-            + " in buffer:"
-            + str(i // 1024)
-            + str(" pos:")
-            + str(i % 1024)
-        )
+    try:
+        if sample_to_plot_fast["A0"][i] >= 15000:
+            print(
+                "Time:"
+                + str(sample_to_plot_fast["Time"][i])
+                + ", Index: "
+                + str(i)
+                + ", Value: "
+                + str(sample_to_plot_fast["A0"][i])
+                + " in buffer:"
+                + str(i // 1024)
+                + str(" pos:")
+                + str(i % 1024)
+            )
+    except KeyError:
+        pass
 
 # %%
 # *** plotting the reference sampling

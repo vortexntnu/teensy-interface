@@ -31,6 +31,8 @@ enum State
 
 String channel_names[5] = {"A0", "A1", "B0", "B1", "C0"};
 
+void testing_adc();
+
 void print_to_csv(uint16_t nb_samples, uint8_t nb_channels);
 void print_all_buffers_to_csv(uint16_t nb_samples, uint8_t nb_channels);
 
@@ -48,7 +50,7 @@ int main()
     // clock of teensy is 600MHz after normal boot
     // Serial.print("F_CPU_ACTUAL: ");
     // Serial.println(F_CPU_ACTUAL);
-    // clock::setup();
+    clock::setup();
     // Serial.print("F_CPU_ACTUAL, after clock::setup(): ");
     // Serial.println(F_CPU_ACTUAL);
     /* ----------------------------------------------------------------------------- */
@@ -84,9 +86,13 @@ int main()
 #endif
     // to be safe should be a bit under 1500. If it sampled more than 1500 for some reason,
     // the data gathered will be inconsistent.
-    uint16_t number_samples = 3 * SAMPLE_LENGTH_ADC;
+
+    // testing_adc();
+    // return 0;
+
     float sample_period = 2.3; // >= MIN_SAMP_PERIOD_TIMER
-    // Serial.println(clock::get_clockcycles_micro(sample_period));
+
+    uint16_t number_samples = 3 * SAMPLE_LENGTH_ADC;
     if (number_samples > 3 * SAMPLE_LENGTH_ADC) // to not overfill ringbuffer
     {
         number_samples = 3 * SAMPLE_LENGTH_ADC;
@@ -107,7 +113,7 @@ int main()
         for (uint16_t index = 0; index < SAMPLE_LENGTH_ADC; index++)
         {
             // here checking if channel A0 voltage is higher than 15000 (=4.68V)
-            if (adc::channel_buff_ptr[0][buffer_to_check][index] > (int16_t)15000)
+            if (adc::channel_buff_ptr[1][buffer_to_check][index] > (int16_t)15000)
             {
                 // found to one once the event happend (will be peak detection)
                 found = 1;
@@ -156,22 +162,6 @@ int main()
     print_all_buffers_to_csv(number_samples, 5);
     return 0;
     // end of gathering samples
-
-    // ! for printing during sampling
-    // Serial.println(",Time,A0,A1,B0,B1,C1");
-
-    number_samples = SAMPLE_LENGTH_ADC * 1;
-    for (uint8_t i = 0; i < 1; i++)
-    {
-        adc::sample_fasfb(number_samples);
-    }
-    // return 0;
-
-    if (42)
-    {
-        print_all_buffers_to_csv(number_samples, 5);
-        return 0;
-    }
 
     /* ----------------------------------------------------------------------------- */
     /* ----------------------------------------------------------------------------- */
@@ -353,5 +343,44 @@ void print_all_buffers_to_csv(uint16_t nb_samples, uint8_t nb_channels)
         adc::buffer_filled[to_print_buffer] = 0;
         to_print_buffer = (to_print_buffer + 1) % BUFFER_PER_CHANNEL;
         index_buffer++; // starts at 0 so will never go over 3
+    }
+}
+
+void testing_adc()
+{
+    uint16_t number_samples;
+    if (1)
+    {
+        float sample_period = 2.3; // >= MIN_SAMP_PERIOD_TIMER
+
+        adc::startConversion(sample_period, adc::BLOCKING);
+        // delayMicroseconds(sample_period * number_samples); // will sample "number_samples" samples
+        uint8_t buffer_to_check = 2;
+        number_samples = SAMPLE_LENGTH_ADC * (buffer_to_check + 1);
+        // Serial.println(buffer_to_check);
+
+        while (!adc::buffer_filled[buffer_to_check])
+        {
+            ;
+        }
+        adc::stopConversion();
+    }
+    // else
+    // {
+    //     // ! for printing during sampling
+    //     // Serial.println(",Time,A0,A1,B0,B1,C1");
+
+    //     number_samples = SAMPLE_LENGTH_ADC * 1;
+    //     for (uint8_t i = 0; i < 1; i++)
+    //     {
+    //         adc::sample_fasfb(number_samples);
+    //     }
+    //     // return 0;
+    // }
+
+    if (42)
+    {
+        print_all_buffers_to_csv(number_samples, 5);
+        // return 0;
     }
 }
